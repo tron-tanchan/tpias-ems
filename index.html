@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TPIAS Energy Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== Tokens ===== */
+:root{
+  --bg:#EEF2F7; --panel:#FFFFFF; --panel-2:#F5F7FB; --line:#D8DFEA;
+  --text:#14213A; --muted:#5D6B82;
+  --solar:#C98A0E; --bess:#6E5BD9; --load:#D6453D; --grid:#1F6FD1; --ok:#178A55;
+  --brand:#1F3864;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1A2B; --panel:#15243A; --panel-2:#1B2D47; --line:#26395A;
+    --text:#E6EDF7; --muted:#8C9BB3;
+    --solar:#F5B33C; --bess:#A897FF; --load:#FF6F66; --grid:#58A8FF; --ok:#3CCB86;
+    --brand:#F5B33C;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1A2B; --panel:#15243A; --panel-2:#1B2D47; --line:#26395A;
+  --text:#E6EDF7; --muted:#8C9BB3;
+  --solar:#F5B33C; --bess:#A897FF; --load:#FF6F66; --grid:#58A8FF; --ok:#3CCB86;
+  --brand:#F5B33C;
+}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font-family:"IBM Plex Sans Thai","Segoe UI",Tahoma,sans-serif;font-size:15px;line-height:1.5}
+.num{font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--grid);outline-offset:2px;border-radius:6px}
+
+/* ===== Layout ===== */
+.app{display:grid;grid-template-columns:248px 1fr;height:100%;overflow:hidden}
+.side{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;height:100%;overflow:hidden}
+.brand{padding:22px 20px 18px;border-bottom:1px solid var(--line)}
+.brand{position:relative}
+.logo{width:64px;height:64px;border-radius:50%;background:#fff;padding:3px;display:block}
+.collapse{position:absolute;top:12px;right:12px;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:var(--panel);cursor:pointer;display:grid;place-items:center;font-size:13px;z-index:3}
+.app.mini{grid-template-columns:76px 1fr}
+.app.mini .brand{padding:14px 0;display:flex;flex-direction:column;align-items:center;gap:8px}
+.app.mini .collapse{position:static}
+.app.mini .logo{width:40px;height:40px}
+.app.mini .brand h1,.app.mini .brand p,.app.mini nav .lb,.app.mini .user span:not(.avatar),.app.mini .user button,.app.mini .status .tx{display:none}
+.app.mini nav button{justify-content:center;padding:10px 0}
+.app.mini nav button[aria-current="page"]{box-shadow:none;outline:1px solid var(--brand)}
+.app.mini .status{flex-direction:column;align-items:center;gap:8px;padding:12px 0}
+.app.mini .user{justify-content:center;padding:12px 0}
+.app.mini .collapse{transform:rotate(180deg)}
+.brand h1{font-size:15px;margin:12px 0 2px;line-height:1.3}
+.brand p{margin:0;color:var(--muted);font-size:13px}
+nav{flex:1;overflow-y:auto;padding:12px 10px;min-height:0;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+nav hr{border:0;border-top:1px solid var(--line);margin:8px 6px}
+.user{display:flex;align-items:center;gap:10px;padding:12px 20px 16px;border-top:1px solid var(--line)}
+.avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--panel-2);color:var(--brand);font-weight:700;border:1px solid var(--brand)}
+.user b{display:block;font-size:15px;line-height:1.2}.user small{color:var(--muted)}
+.user button{margin-left:auto;border:0;background:none;cursor:pointer;color:var(--muted);font-size:13px}
+nav button{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border:0;background:none;border-radius:8px;cursor:pointer;text-align:left;font-size:15px}
+nav button:hover{background:var(--panel-2)}
+nav button[aria-current="page"]{background:var(--panel-2);font-weight:600;box-shadow:inset 3px 0 0 var(--brand)}
+nav svg{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8}
+.status{padding:14px 20px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;gap:14px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px}
+.dot.off{background:var(--load)}
+
+main{overflow:auto;min-width:0}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:22px 28px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:2}
+header h2{margin:0;font-size:26px;line-height:1.2}
+.clock{text-align:right}
+.clock .t{font-size:20px;font-weight:600}
+.clock .d,.clock .p{font-size:13px;color:var(--muted)}
+.clock .p{color:var(--brand);font-weight:600}
+.menu-btn{display:none;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 10px;cursor:pointer}
+.theme-btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:13px;margin-top:6px}
+.content{padding:24px 28px 40px}
+.view[hidden]{display:none}
+
+/* ===== Overview ===== */
+.toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.toolbar .count{font-weight:600;font-size:17px}
+.toolbar .upd{color:var(--muted);font-size:13px;margin-left:auto}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 14px;cursor:pointer}
+.btn.primary{background:var(--brand);color:var(--bg);border-color:var(--brand);font-weight:600}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--panel);padding:6px 12px;cursor:pointer;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--panel-2);color:var(--brand);font-weight:600}
+.search{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:8px;padding:7px 12px;min-width:220px;font:inherit;font-size:14px}
+.ptable-wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.ptable{width:100%;border-collapse:collapse;min-width:760px;font-size:14px}
+.ptable th{text-align:right;font-weight:600;color:var(--muted);padding:12px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
+.ptable td{text-align:right;padding:14px 16px;font-variant-numeric:tabular-nums}
+.ptable th:first-child,.ptable td:first-child,.ptable th:nth-child(2),.ptable td:nth-child(2){text-align:left}
+.ptable small{display:block;color:var(--muted);font-size:12px}
+.plogo{width:44px;height:44px;border-radius:50%;background:#fff;padding:2px;flex:none}
+.psel{margin:12px 10px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel-2)}
+.psel>button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;padding:8px 10px;cursor:pointer;text-align:left;font-weight:600;font-size:14px}
+.psel>button img,.psel li img{width:28px;height:28px;border-radius:50%;background:#fff;flex:none}
+.psel>button .chev{margin-left:auto;transition:transform .2s}
+.psel[data-open="true"]>button .chev{transform:rotate(180deg)}
+.psel ul{list-style:none;margin:0;padding:6px;border-top:1px solid var(--line)}
+.psel[data-open="false"] ul{display:none}
+.psel li button{display:flex;gap:10px;align-items:center;width:100%;border:0;background:var(--panel);border-radius:8px;padding:8px;cursor:pointer;text-align:left}
+.psel li b{display:block;color:var(--brand);font-size:14px;line-height:1.3}
+.psel li small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.psel .nm{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.app.mini .psel{display:none}
+.more{display:flex;justify-content:flex-end;margin:-6px 0 12px}
+.more button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:13px}
+.det{border-top:1px solid var(--line);padding-top:14px;margin-bottom:16px}
+.det-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.det h5{margin:0 0 6px;font-size:14px;color:var(--c)}
+.det table{width:100%;border-collapse:collapse;font-size:13px}
+.det td{padding:4px 0;border-bottom:1px solid var(--line)}
+.det td:last-child{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.det td small{color:var(--muted);font-weight:400;margin-left:4px}
+.racks{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:8px}
+.rack{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--panel-2);font-size:12px}
+.rack .rh{display:flex;justify-content:space-between;font-weight:600;font-size:13px}
+.rack .st{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:10px;padding:0 6px}
+.rack .bar{margin:6px 0 8px}
+.rack dl{display:grid;grid-template-columns:1fr auto;gap:2px 8px;margin:0}
+.rack dt{color:var(--muted)}.rack dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.plant.wide{max-width:900px}
+@media (max-width:760px){.det-grid{grid-template-columns:1fr}}
+.plant{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--brand);border-radius:12px;padding:20px 22px;max-width:520px}
+.plant .head{display:flex;justify-content:space-between;gap:12px}
+.plant h3{margin:0;font-size:19px}
+.plant .addr{color:var(--muted);font-size:13px;margin:4px 0 0;max-width:36ch}
+.online{color:var(--ok);font-size:14px;white-space:nowrap}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:22px 0 18px;text-align:center}
+.kpi .v{font-size:26px;font-weight:700;line-height:1.1}
+.kpi .u{font-size:13px;color:var(--muted)}
+.kpi .n{font-size:13px;color:var(--muted);margin-bottom:6px}
+.soc-row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.bar{height:6px;background:var(--panel-2);border-radius:4px;overflow:hidden;margin:6px 0 16px}
+.bar i{display:block;height:100%;background:var(--bess);border-radius:4px;transition:width .6s}
+
+/* ===== Dashboard ===== */
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;border-left:4px solid var(--c)}
+.tile .top{display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.tag{font-size:12px;font-weight:500;padding:2px 8px;border-radius:20px;background:var(--panel-2);color:var(--c)}
+.tile .big{font-size:34px;font-weight:700;color:var(--c);margin:8px 0 10px;line-height:1}
+.tile .big small{font-size:15px;color:var(--muted);font-weight:500;margin-left:4px}
+.tile dl{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin:0;font-size:13px;border-top:1px solid var(--line);padding-top:10px}
+.tile dt{color:var(--muted)} .tile dd{margin:0 0 4px;font-weight:600}
+.row2{display:grid;grid-template-columns:1.1fr 1.4fr;gap:14px;margin-top:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;min-width:0}
+.card h4{margin:0 0 10px;font-size:16px}
+.flow svg{width:100%;height:auto;display:block}
+.flow text{fill:var(--text);font-family:inherit}
+.flow .lbl{fill:var(--muted);font-size:12px}
+.wire{stroke:var(--line);stroke-width:6;fill:none;stroke-linecap:round}
+.pulse{fill:none;stroke-width:3;stroke-dasharray:6 14;stroke-linecap:round}
+.pulse.fwd{animation:run 1.2s linear infinite}
+.pulse.rev{animation:run 1.2s linear infinite reverse}
+@keyframes run{to{stroke-dashoffset:-20}}
+@media (prefers-reduced-motion: reduce){.pulse.fwd,.pulse.rev{animation:none}}
+.chart-wrap{overflow-x:auto}
+.chart svg{width:100%;min-width:700px;height:auto;display:block}
+.chart .ax{stroke:var(--line);stroke-width:1}
+.chart text{fill:var(--muted);font-size:11px;font-family:inherit}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;margin-top:8px}
+.legend span::before{content:"";display:inline-block;width:14px;height:3px;border-radius:2px;background:var(--c);vertical-align:middle;margin-right:6px}
+.ss{margin-bottom:14px}
+.ss-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.ss-top>b{font-size:22px;color:var(--ok)}
+.ss-meta{margin-left:auto;display:flex;gap:16px;font-size:14px}.ss-meta i{font-style:normal}
+.ss .bar{height:8px;margin:10px 0 0}
+.row2{grid-template-columns:2fr 1fr}
+.stat{width:100%;border-collapse:collapse;font-size:14px}
+.stat td{padding:8px 0;border-bottom:1px solid var(--line)}
+.stat td:last-child{text-align:right;font-weight:600}
+.okc{color:var(--ok)}.bad{color:var(--load)}
+.row3{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.donut{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.donut svg{width:170px;height:170px;flex:none}
+.donut ul{list-style:none;margin:0;padding:0;font-size:14px}
+.donut li{margin:6px 0}.donut li b{font-variant-numeric:tabular-nums}
+.donut li::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--c);margin-right:8px}
+.det-grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.kstrip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;margin-top:14px}
+.kstrip div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--muted)}
+.kstrip b{display:block;font-size:17px;color:var(--c,var(--text));font-variant-numeric:tabular-nums}
+.fl-box{fill:var(--panel-2);stroke-width:2.5}
+.fl-v{font-size:20px;font-weight:700}
+.fl-s{font-size:12px;fill:var(--muted)}
+.bus{stroke:var(--muted);stroke-width:8;stroke-linecap:round}
+.drop{stroke:var(--line);stroke-width:4}
+@media (max-width:1100px){.row3{grid-template-columns:1fr}.det-grid.four{grid-template-columns:repeat(2,minmax(0,1fr))}.kstrip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.flowstage{padding:12px;background:
+  radial-gradient(circle at 20% 10%,color-mix(in srgb,var(--grid) 14%,transparent),transparent 45%),
+  radial-gradient(circle at 85% 90%,color-mix(in srgb,var(--solar) 12%,transparent),transparent 45%),
+  linear-gradient(var(--panel),var(--panel)),
+  repeating-linear-gradient(0deg,var(--line) 0 1px,transparent 1px 32px)}
+.flowstage svg{width:100%;height:auto;display:block}
+.flowstage text{fill:var(--text);font-family:inherit}
+#three{position:relative;height:min(62vh,560px);border-radius:10px;overflow:hidden;cursor:grab;touch-action:none}
+#three:active{cursor:grabbing}
+#three canvas{display:block;width:100%;height:100%}
+#three .hint{position:absolute;top:10px;right:12px;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:3px 10px;background:var(--panel);z-index:2}
+.tag3{position:absolute;transform:translate(-50%,-100%);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:12px;pointer-events:none;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.tag3 b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
+.tag3 i{font-style:normal;color:var(--muted)}
+.tag3 .t{display:flex;align-items:center;gap:6px;font-weight:600}
+.tag3 .t::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c)}
+.banner{display:flex;justify-content:space-between;align-items:center;border-left:4px solid var(--c);margin-bottom:14px}
+.banner small{color:var(--muted);font-size:13px}.banner b{display:block;font-size:30px;color:var(--c)}
+.banner .br{text-align:right;display:flex;align-items:center;gap:14px}.banner .br b{font-size:22px}
+.banner .tag{--c:var(--solar)}
+.grid2{display:grid;grid-template-columns:minmax(0,560px) 1fr;gap:14px;margin-bottom:14px}
+.chead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}.chead h4{margin:0}
+.ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ctrl input,.ctrl select{border:1px solid var(--line);background:var(--panel-2);color:var(--text);border-radius:8px;padding:5px 8px;font:inherit;font-size:13px}
+.rackgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+.kv table{width:100%;border-collapse:collapse;font-size:13px}
+.kv td{padding:5px 0;border-bottom:1px solid var(--line)}.kv td:first-child{color:var(--muted)}
+.kv td:last-child{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}.kv small{color:var(--muted);font-weight:400;margin-left:3px}
+.chips{display:flex;gap:6px;margin:8px 0 12px}.chips span{font-size:12px;border:1px solid var(--line);border-radius:12px;padding:1px 10px;color:var(--muted)}
+.chips span.on{color:var(--c);border-color:var(--c);font-weight:600}
+.big2{font-size:30px;font-weight:700;color:var(--c);font-variant-numeric:tabular-nums}.big2 small{font-size:14px;color:var(--muted);font-weight:500}
+.sch tr.act td{background:color-mix(in srgb,var(--brand) 14%,transparent)}
+.sch td{text-align:center!important}.sch th{text-align:center!important}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}.kv{grid-template-columns:1fr}}
+.tiles.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.alrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.alrow .lv{font-size:12px;font-weight:700;border-radius:10px;padding:1px 9px;color:#fff;background:var(--c)}
+.alrow .tx{flex:1}.alrow small{display:block;color:var(--muted)}
+.calwrap{display:grid;grid-template-columns:1fr 320px;gap:14px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid var(--line)}
+.cal div{min-height:78px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:6px 8px;font-size:14px;cursor:pointer}
+.cal div:nth-child(7n){border-right:0}.cal .hd{min-height:auto;text-align:center;color:var(--muted);cursor:default;font-weight:600}
+.cal .sun{color:var(--load)}.cal .sat{color:var(--grid)}.cal .hol small{display:block;color:var(--load);font-size:11px;line-height:1.3}
+.cal .today b{background:var(--brand);color:var(--bg);border-radius:50%;padding:2px 7px}.cal .sel{outline:2px solid var(--brand);outline-offset:-2px}
+.cal div:hover:not(.hd){background:var(--panel-2)}
+.form{display:grid;gap:10px;margin-bottom:12px}.form label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.form input,.ctrl input[type=text]{border:1px solid var(--line);background:var(--panel-2);color:var(--text);border-radius:8px;padding:7px 10px;font:inherit}
+.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.themes button{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel-2);cursor:pointer;padding:0;text-align:left}
+.themes button[aria-pressed=true]{outline:2px solid var(--brand)}
+.themes .sw{display:flex;height:40px}.themes .sw i{flex:1}.themes span{display:block;padding:6px 10px;font-size:13px}
+@media (max-width:1100px){.calwrap{grid-template-columns:1fr}.tiles.three{grid-template-columns:1fr}}
+.empty{background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:40px;text-align:center;color:var(--muted)}
+.empty strong{display:block;color:var(--text);font-size:17px;margin-bottom:6px}
+.demo{font-size:12px;color:var(--muted);margin-top:24px}
+
+@media (max-width:1100px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.row2{grid-template-columns:1fr}}
+@media (max-width:760px){
+  .collapse{display:none}.app.mini{grid-template-columns:1fr}
+  .app{grid-template-columns:1fr}
+  .side{position:fixed;inset:0 auto 0 0;width:260px;z-index:10;transform:translateX(-100%);transition:transform .2s;padding-top:env(safe-area-inset-top,0px)}
+  .side.open{transform:none}
+  .menu-btn{display:inline-block;margin-right:10px}
+  header{padding:14px 16px;top:env(safe-area-inset-top,0px)} header h2{font-size:20px}
+  .content{padding:16px}
+  .tiles{grid-template-columns:1fr}
+  .kpis .v{font-size:21px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side">
+    <div class="brand">
+      <img class="logo" src="data:image/webp;base64,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" alt="TPI Polene">
+      <button class="collapse" id="collapseBtn" aria-label="ย่อ/ขยายเมนู" title="ย่อ/ขยายเมนู">‹</button>
+      <h1>TPIAS Energy Management System</h1>
+      <p>TPI All Seasons · Saraburi</p>
+    </div>
+    <div class="psel" id="psel" data-open="false">
+      <button id="pselBtn" aria-expanded="false"><img src="data:image/webp;base64,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" alt=""><span class="nm">TPIAS / TPI ALL SEASON</span><span class="chev">▾</span></button>
+      <ul><li><button data-go="overview"><img src="data:image/webp;base64,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" alt=""><span><b>TPIAS / TPI ALL SEASON</b><small>49/1 หมู่ 1 ถนนพิชัยรณรงค์สงคราม สระบุรี</small></span></button></li></ul>
+    </div>
+    <nav id="nav"></nav>
+    <div class="status"><span title="Live"><i class="dot" id="liveDot"></i><span class="tx">Live</span></span><span title="Gateway"><i class="dot" id="gwDot"></i><span class="tx">Gateway</span></span></div>
+    <div class="user"><span class="avatar">T</span><span><b>TPIAS</b><small>User</small></span><button aria-label="ออกจากระบบ">ออกจากระบบ</button></div>
+  </aside>
+
+  <main>
+    <header>
+      <div style="display:flex;align-items:center">
+        <button class="menu-btn" id="menuBtn" aria-label="เปิดเมนู">☰</button>
+        <h2 id="title">Overview Plants</h2>
+      </div>
+      <div class="clock">
+        <div class="p">TPIAS / TPI ALL SEASON</div>
+        <div class="t num" id="time">--:--:--</div>
+        <div class="d" id="date"></div>
+        <button class="theme-btn" id="themeBtn">สลับธีม</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- Overview -->
+      <section class="view" data-view="overview">
+        <div class="toolbar">
+          <span class="count">Devices (1)</span>
+          <button class="btn primary" data-go="dashboard">Dashboard Summary</button>
+          <input class="search" id="search" type="search" placeholder="ค้นหา Plant / Device ID" aria-label="ค้นหา">
+          <span class="upd num" id="upd"></span>
+          <span class="seg" role="group" aria-label="รูปแบบการแสดง"><button id="vCard" aria-pressed="true">การ์ด</button><button id="vTable" aria-pressed="false">ตาราง</button></span>
+          <button class="btn" id="refresh">Refresh</button>
+        </div>
+        <p class="empty" id="noMatch" hidden><strong>ไม่พบ Plant ที่ค้นหา</strong>ลองค้นด้วยชื่อหรือ Device ID อื่น</p>
+        <article class="plant" id="plantCard">
+          <div class="head">
+            <div>
+              <h3>TPIAS / TPI ALL SEASON</h3>
+              <small class="num" style="color:var(--muted)">tpias-001</small>
+              <p class="addr">49/1 หมู่ 1 ถนนพิชัยรณรงค์สงคราม ต.นาโฉง อ.เมือง จ.สระบุรี 18000</p>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-start"><span class="online" id="plantStatus">● Online</span><img class="plogo" src="data:image/webp;base64,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" alt=""></div>
+          </div>
+          <div class="kpis">
+            <div class="kpi"><div class="n">Solar</div><div class="v num" style="color:var(--solar)" id="kSolar">0</div><div class="u">kW</div></div>
+            <div class="kpi"><div class="n">BESS SOC</div><div class="v num" style="color:var(--bess)" id="kSoc">0</div><div class="u">%</div></div>
+            <div class="kpi"><div class="n">Load</div><div class="v num" style="color:var(--load)" id="kLoad">0</div><div class="u">kW</div></div>
+            <div class="kpi"><div class="n">Grid</div><div class="v num" style="color:var(--grid)" id="kGrid">0</div><div class="u">kW</div></div>
+          </div>
+          <div class="soc-row"><span>Battery SOC</span><span class="num" id="socTxt">0%</span></div>
+          <div class="bar"><i id="socBar" style="width:0"></i></div>
+          <div class="more"><button id="moreBtn" aria-expanded="false">▾ ข้อมูลเพิ่มเติม</button></div>
+          <div class="det" id="det" hidden>
+            <div class="det-grid">
+              <div style="--c:var(--solar)"><h5>Solar</h5><table>
+                <tr><td>Power</td><td id="xSolarP">0<small>kW</small></td></tr>
+                <tr><td>Irradiance</td><td id="xIrr">0<small>W/m²</small></td></tr></table></div>
+              <div style="--c:var(--bess)"><h5>BESS</h5><table>
+                <tr><td>Power</td><td id="xBessP">0<small>kW</small></td></tr>
+                <tr><td>Mode</td><td id="xBessM">Idle</td></tr>
+                <tr><td>SOC</td><td id="xBessS">0<small>%</small></td></tr>
+                <tr><td>DC volt</td><td id="xBessV">0<small>V</small></td></tr>
+                <tr><td>DC current</td><td id="xBessI">0<small>A</small></td></tr>
+                <tr><td>Temp</td><td id="xBessT">0<small>°C</small></td></tr></table></div>
+              <div><div style="--c:var(--load)"><h5>Load</h5><table>
+                <tr><td>Power</td><td id="xLoadP">0<small>kW</small></td></tr>
+                <tr><td>Volt (L-L)</td><td id="xLoadV">0<small>V</small></td></tr>
+                <tr><td>Current</td><td id="xLoadI">0<small>A</small></td></tr>
+                <tr><td>Freq</td><td id="xLoadF">0<small>Hz</small></td></tr></table></div>
+                <div style="--c:var(--grid);margin-top:14px"><h5>Grid</h5><table>
+                <tr><td>Power</td><td id="xGridP">0<small>kW</small></td></tr>
+                <tr><td>Direction</td><td id="xGridD">Import</td></tr>
+                <tr><td>Volt (22 kV side)</td><td id="xGridV">0<small>V</small></td></tr>
+                <tr><td>Freq</td><td id="xGridF">0<small>Hz</small></td></tr></table></div></div>
+            </div>
+            <h5 style="margin:16px 0 0;font-size:14px;color:var(--bess)">Battery racks (5)</h5>
+            <div class="racks" id="racks"></div>
+          </div>
+          <button class="btn" style="width:100%" data-go="dashboard">ดูรายละเอียด</button>
+        </article>
+        <div class="ptable-wrap" id="plantTable" hidden>
+          <table class="ptable">
+            <thead><tr><th>Plant / Device</th><th>Status</th><th>Solar (kW)</th><th>SOC (%)</th><th>Load (kW)</th><th>Grid (kW)</th><th>Updated</th><th></th></tr></thead>
+            <tbody><tr>
+              <td><b>TPIAS / TPI ALL SEASON</b><small>tpias-001</small></td>
+              <td class="online" id="tStatus">● Online</td>
+              <td style="color:var(--solar)" id="tSolar">0</td><td style="color:var(--bess)" id="tSoc">0</td>
+              <td style="color:var(--load)" id="tLoad">0</td><td style="color:var(--grid)" id="tGrid">0</td>
+              <td id="tUpd" style="color:var(--muted)">—</td>
+              <td><button class="btn" data-go="dashboard">ดูรายละเอียด</button></td>
+            </tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Dashboard -->
+      <section class="view" data-view="dashboard" hidden>
+        <div class="card ss">
+          <div class="ss-top"><span>Self-sufficiency วันนี้</span><b class="num" id="ssPct">0%</b>
+            <span class="ss-meta num"><i style="color:var(--solar)">Solar <b id="ssSolar">0</b> kW</i><i style="color:var(--load)">Load <b id="ssLoad">0</b> kW</i><i style="color:var(--grid)">Grid <b id="ssGrid">0</b> kW</i></span></div>
+          <div class="bar"><i id="ssBar" style="width:0;background:var(--ok)"></i></div>
+        </div>
+
+        <div class="tiles">
+          <div class="tile" style="--c:var(--solar)"><div class="top">Solar <span class="tag" id="tSolarTag">Generating</span></div>
+            <div class="big num"><span id="dSolar">0</span><small>kW</small></div>
+            <dl><dt>วันนี้</dt><dt>สะสม</dt><dd class="num" id="dSolarDay">0 kWh</dd><dd class="num" id="dSolarLife">0 kWh</dd></dl></div>
+          <div class="tile" style="--c:var(--bess)"><div class="top">BESS <span class="tag" id="tBessTag">Standby</span></div>
+            <div class="big num"><span id="dBess">0</span><small>kW</small></div>
+            <dl><dt>SOC</dt><dt>Mode</dt><dd class="num" id="dSoc">0%</dd><dd id="dMode">On-grid</dd></dl></div>
+          <div class="tile" style="--c:var(--load)"><div class="top">Load <span class="tag">Consuming</span></div>
+            <div class="big num"><span id="dLoad">0</span><small>kW</small></div>
+            <dl><dt>วันนี้</dt><dt>Peak วันนี้</dt><dd class="num" id="dLoadDay">0 kWh</dd><dd class="num" id="dLoadPk">0 kW</dd></dl></div>
+          <div class="tile" style="--c:var(--grid)"><div class="top">Grid <span class="tag" id="tGridTag">Import</span></div>
+            <div class="big num"><span id="dGrid">0</span><small>kW</small></div>
+            <dl><dt>Import วันนี้</dt><dt>Export วันนี้</dt><dd class="num" id="dImp">0 kWh</dd><dd class="num" id="dExp">0 kWh</dd></dl></div>
+        </div>
+
+        <div class="row2">
+          <div class="card flow"><h4>Power flow</h4>
+            <svg viewBox="0 0 900 440" role="img" aria-label="Power flow single line" id="flowSvg"></svg>
+          </div>
+          <div class="card"><h4>สถานะระบบ</h4>
+            <table class="stat"><tbody id="sysStat"></tbody></table>
+            <p class="demo" style="margin-top:12px">สภาพอากาศจาก API ภายนอกจะเพิ่มผ่าน backend (หน้าเว็บเรียก API นอกตรงๆ ไม่ได้)</p>
+          </div>
+        </div>
+
+        <div class="card chart" style="margin-top:14px"><h4>โปรไฟล์พลังงานวันนี้ (kW / %SOC)</h4>
+          <div class="chart-wrap"><svg id="chart" viewBox="0 0 1000 280" role="img" aria-label="Daily power chart"></svg></div>
+          <div class="legend">
+            <span style="--c:var(--solar)">Solar</span><span style="--c:var(--bess)">BESS</span>
+            <span style="--c:var(--load)">Load</span><span style="--c:var(--grid)">Grid</span><span style="--c:var(--ok)">SOC</span>
+          </div>
+        </div>
+
+        <div class="row3">
+          <div class="card"><h4>สัดส่วนแหล่งพลังงานของโหลด (วันนี้)</h4><div class="donut" id="donutCons"></div></div>
+          <div class="card"><h4>การใช้พลังงานจาก Solar (วันนี้)</h4><div class="donut" id="donutPV"></div></div>
+        </div>
+
+        <div class="card" style="margin-top:14px"><h4>สถานะละเอียด</h4>
+          <div class="det det-grid four" id="detail" style="border-top:0;padding-top:0"></div>
+        </div>
+
+        <div class="kstrip" id="kstrip"></div>
+        <p class="demo">ข้อมูลจำลอง (demo) · Load = Grid + Solar + BESS · BESS + = discharge, Grid + = import · CO₂ factor 0.4999 kg/kWh (ตั้งค่าได้)</p>
+      </section>
+
+      <section class="view" data-view="flow" hidden>
+        <div class="toolbar">
+          <span class="count">Power flow — TPIAS / TPI ALL SEASON</span>
+          <span class="seg" role="group" aria-label="มุมมอง" style="margin-left:auto"><button id="m2d" aria-pressed="true">2D</button><button id="m3d" aria-pressed="false">3D</button></span>
+        </div>
+        <div class="card flowstage" id="stage2d"><svg viewBox="0 0 900 440" role="img" aria-label="Power flow 2D" id="flowSvg2"></svg></div>
+        <div class="card flowstage" id="stage3d" hidden>
+          <div id="three"><span class="hint">ลากเพื่อหมุนมุมกล้อง · scroll เพื่อซูม</span></div>
+          <div class="legend" style="justify-content:center">
+            <span style="--c:var(--solar)">Solar</span><span style="--c:var(--bess)">Battery</span>
+            <span style="--c:var(--load)">Grid นำเข้า</span><span style="--c:var(--grid)">Grid ส่งออก</span><span style="--c:var(--ok)">Load</span>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px"><h4>สถานะละเอียด</h4>
+          <div class="det det-grid four" id="detail2" style="border-top:0;padding-top:0"></div>
+        </div>
+      </section>
+
+      <section class="view" data-view="solar" hidden>
+        <div class="card banner" style="--c:var(--solar)"><div><small>Solar generation · 1 system</small><b class="num"><span id="sNow">0</span> <small>kW</small></b></div>
+          <div class="br"><small>วันนี้</small><b class="num"><span id="sDay">0</span> <small>kWh</small></b><span class="tag" id="sTag">Idle</span></div></div>
+        <div class="grid2"><div class="card" id="sCard"></div><div></div></div>
+        <div class="card chart"><div class="chead"><h4>Solar power history (kW)</h4><span class="ctrl" data-for="solar"></span></div>
+          <div class="chart-wrap"><svg id="cSolar" viewBox="0 0 1000 280"></svg></div><div class="legend" id="lSolar"></div></div>
+      </section>
+
+      <section class="view" data-view="bess" hidden>
+        <div class="card" id="scuCard"></div>
+        <h4 style="margin:18px 0 10px">Battery racks (5)</h4>
+        <div class="rackgrid" id="rackGrid"></div>
+        <div class="card chart" style="margin-top:14px"><div class="chead"><h4>BESS SOC (%) & Power (kW)</h4><span class="ctrl" data-for="bess"></span></div>
+          <div class="chart-wrap"><svg id="cBess" viewBox="0 0 1000 280"></svg></div><div class="legend" id="lBess"></div></div>
+      </section>
+
+      <section class="view" data-view="meter" hidden>
+        <div class="rackgrid" id="meterGrid"></div>
+        <div class="card chart" style="margin-top:14px"><div class="chead"><h4>Power trend (kW)</h4><span class="ctrl" data-for="meter"></span></div>
+          <div class="chart-wrap"><svg id="cMeter" viewBox="0 0 1000 280"></svg></div><div class="legend" id="lMeter"></div></div>
+      </section>
+
+      <section class="view" data-view="ems" hidden>
+        <div class="tiles" id="emsTiles"></div>
+        <div class="row3" id="emsSum"></div>
+        <div class="card" style="margin-top:14px">
+          <div class="chead"><h4>EMS schedule</h4>
+            <span class="seg" role="group"><button id="schW" aria-pressed="true">Working day</button><button id="schH" aria-pressed="false">Holiday</button></span></div>
+          <div class="ptable-wrap" style="border:0"><table class="ptable sch"><thead><tr><th>#</th><th>Enable</th><th>Start</th><th>End</th><th>Function</th><th>Setpoint (kW)</th><th>Incoming limit (kW)</th><th>SOC low (%)</th><th>SOC high (%)</th></tr></thead><tbody id="schBody"></tbody></table></div>
+          <p class="demo">ช่วงที่กำลังทำงานจะไฮไลต์ · ดูอย่างเดียว การแก้ schedule จะผ่าน PLC (handshake + login) ภายหลัง · AI forecast ต้องใช้ข้อมูลอากาศผ่าน backend</p>
+        </div>
+      </section>
+
+      <section class="view" data-view="analytics" hidden>
+        <div class="card"><div class="chead"><h4>ช่วงข้อมูล</h4><span class="ctrl" data-for="analytics"></span></div></div>
+        <div class="tiles" id="anStats" style="margin-top:14px"></div>
+        <div class="card chart" style="margin-top:14px"><h4>Real-time power (kW)</h4><div class="chart-wrap"><svg id="cAn1" viewBox="0 0 1000 280"></svg></div><div class="legend" id="lAn1"></div></div>
+        <div class="card chart" style="margin-top:14px"><h4>Energy comparison (kWh / interval)</h4><div class="chart-wrap"><svg id="cAn2" viewBox="0 0 1000 280"></svg></div><div class="legend" id="lAn2"></div></div>
+        <div class="card chart" style="margin-top:14px"><h4>BESS SOC (%) & Power (kW)</h4><div class="chart-wrap"><svg id="cAn3" viewBox="0 0 1000 280"></svg></div><div class="legend" id="lAn3"></div></div>
+      </section>
+
+      <section class="view" data-view="alarm" hidden>
+        <div class="toolbar"><span class="seg"><button data-tab="alA" aria-pressed="true">Active alarms</button><button data-tab="alR" aria-pressed="false">Alarm rules <span id="ruleCnt"></span></button></span></div>
+        <div class="tabp" id="alA">
+          <div class="tiles three" id="alSum"></div>
+          <div class="card" style="margin-top:14px"><h4>Active alarms</h4><div id="alList"></div></div>
+        </div>
+        <div class="tabp" id="alR" hidden><div class="ptable-wrap"><table class="ptable"><thead><tr><th>#</th><th>Rule</th><th>เงื่อนไข</th><th>ระดับ</th><th>สถานะ</th></tr></thead><tbody id="ruleBody"></tbody></table></div>
+          <p class="demo">การแจ้งเตือนบนมือถือ (Web Push / LINE) ต้องทำผ่าน backend</p></div>
+      </section>
+
+      <section class="view" data-view="calendar" hidden>
+        <div class="toolbar"><span class="seg"><button data-tab="caC" aria-pressed="true">ปฏิทิน</button><button data-tab="caH" aria-pressed="false">จัดการวันหยุด</button></span></div>
+        <div class="tabp" id="caC"><div class="calwrap">
+          <div class="card"><div class="chead"><div><h4 id="calTitle" style="font-size:20px"></h4><small id="calSub" style="color:var(--muted)"></small></div>
+            <span class="ctrl"><button class="btn" id="calToday">วันนี้</button><button class="btn" id="calPrev" aria-label="เดือนก่อน">‹</button><button class="btn" id="calNext" aria-label="เดือนถัดไป">›</button></span></div>
+            <div class="cal" id="calGrid"></div></div>
+          <div><div class="card" id="calDetail"><p class="demo" style="text-align:center">คลิกวันที่เพื่อดูรายละเอียด</p></div>
+            <div class="card" style="margin-top:14px"><h4>วันหยุดเดือนนี้</h4><div id="calHol"></div></div></div>
+        </div></div>
+        <div class="tabp" id="caH" hidden><div class="card">
+          <div class="ctrl" style="margin-bottom:12px"><input type="date" id="hDate"><input type="text" id="hName" placeholder="ชื่อวันหยุด"><button class="btn primary" id="hAdd">เพิ่มวันหยุด</button></div>
+          <div class="ptable-wrap" style="border:0"><table class="ptable"><thead><tr><th>วันที่</th><th>ชื่อ</th><th></th></tr></thead><tbody id="hBody"></tbody></table></div>
+          <p class="demo">วันหยุด = EMS ใช้ schedule ชุด Holiday · เก็บในเบราว์เซอร์นี้ (ต่อ backend แล้วจะเก็บกลาง)</p></div></div>
+      </section>
+
+      <section class="view" data-view="plant" hidden>
+        <div class="row3" style="margin-top:0">
+          <div class="card"><h4>General information</h4><div class="kv" style="grid-template-columns:1fr" id="piGen"></div></div>
+          <div class="card"><h4>Live power</h4><div class="kv" style="grid-template-columns:1fr" id="piLive"></div></div>
+        </div>
+        <div class="card" style="margin-top:14px"><h4>Equipment</h4><div class="kv" style="grid-template-columns:1fr" id="piEq"></div>
+          <p class="demo">ช่องที่มีเครื่องหมาย ⚠ ยังต้องยืนยันค่าจริง · ไม่ใส่ IP / register map ในหน้าเว็บเพราะ repo จะเป็น public</p></div>
+        <div class="card" style="margin-top:14px"><h4>Location</h4><p>14.5450° N, 100.8824° E · <a href="https://www.google.com/maps?q=14.5450,100.8824" target="_blank" rel="noopener" style="color:var(--grid)">เปิดใน Google Maps ↗</a></p></div>
+      </section>
+
+      <section class="view" data-view="logs" hidden>
+        <div class="card"><div class="chead">
+          <span class="ctrl"><span class="seg" id="lgRange"></span>
+            <select id="lgStep" aria-label="Interval"><option value="5">5 นาที</option><option value="15">15 นาที</option><option value="60" selected>1 ชม.</option></select></span>
+          <span class="seg"><button data-tab="lgC" aria-pressed="true">Chart</button><button data-tab="lgT" aria-pressed="false">Table</button></span></div>
+          <div class="ctrl" id="lgSeries"></div></div>
+        <div class="kstrip" id="lgStats" style="grid-template-columns:repeat(6,minmax(0,1fr))"></div>
+        <div class="tabp card chart" id="lgC" style="margin-top:14px"><div class="chart-wrap"><svg id="cLog" viewBox="0 0 1000 280"></svg></div><div class="legend" id="lLog"></div></div>
+        <div class="tabp card" id="lgT" hidden style="margin-top:14px"><div class="ptable-wrap" style="border:0;max-height:520px;overflow:auto"><table class="ptable"><thead><tr><th>เวลา</th><th>Solar (kW)</th><th>BESS (kW)</th><th>Load (kW)</th><th>Grid (kW)</th><th>SOC (%)</th></tr></thead><tbody id="lgBody"></tbody></table></div></div>
+      </section>
+
+      <section class="view" data-view="settings" hidden>
+        <div class="toolbar"><span class="seg"><button data-tab="stA" aria-pressed="true">บัญชีผู้ใช้</button><button data-tab="stT" aria-pressed="false">Theme</button><button data-tab="stP" aria-pressed="false">Plants</button><button data-tab="stD" aria-pressed="false">Data source</button></span></div>
+        <div class="tabp" id="stA"><div class="card" style="max-width:420px"><h4>เปลี่ยน password</h4>
+          <div class="form"><label>Password ปัจจุบัน<input type="password" disabled></label><label>Password ใหม่<input type="password" disabled placeholder="อย่างน้อย 8 ตัวอักษร"></label>
+          <button class="btn primary" disabled>เปลี่ยน password</button></div><p class="demo">ระบบ login จะเปิดใช้เมื่อต่อ backend (เช่น Supabase Auth)</p></div></div>
+        <div class="tabp" id="stT" hidden><div class="card"><h4>Preset themes</h4><div class="themes" id="themeList"></div></div></div>
+        <div class="tabp" id="stP" hidden><div class="card" style="max-width:560px"><h4>Plant settings</h4><div class="form" id="plantForm"></div><button class="btn primary" id="plantSave">บันทึก</button> <span id="plantMsg" class="demo"></span></div></div>
+        <div class="tabp" id="stD" hidden><div class="card" style="max-width:560px"><h4>Data source</h4><div class="kv" style="grid-template-columns:1fr" id="dsInfo"></div>
+          <p class="demo">เปลี่ยนแหล่งข้อมูลที่บรรทัด DATA_SOURCE / API_URL ใน index.html · VPN / remote access จัดการที่ V-BOX ไม่ผ่านหน้าเว็บนี้</p></div></div>
+      </section>
+
+      <!-- Placeholder views -->
+      <section class="view" data-view="other" hidden>
+        <div class="empty"><strong id="emptyTitle">หน้านี้</strong>ยังไม่ได้เชื่อมข้อมูล เพิ่มได้หลังต่อ API ของ PLC</div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ===== Config: เปลี่ยนเป็น 'api' แล้วตั้ง API_URL เมื่อมี backend ===== */
+const DATA_SOURCE = 'mock';
+const API_URL = '/api/live';   // คาดว่า backend คืน JSON {solar,bess,load,grid,soc,recloserOpen,ts}
+
+const MENU = [
+  ['overview','Plants','M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z'],
+  ['dashboard','Dashboard','M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z'],
+  ['flow','Power Flow','M3 12h4l3-8 4 16 3-8h4'],
+  ['solar','Solar','M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z'],
+  ['bess','BESS','M3 8h15v8H3zM20 11v2'],
+  ['meter','Meter','M4 16a8 8 0 1 1 16 0M12 16l4-5'],
+  ['ems','EMS','M3 5h18v11H3zM8 20h8M12 16v4'],
+  ['analytics','Analytics','M5 20V12M10 20V6M15 20v-5M20 20V9'],
+  ['alarm','Alarm','M6 16V11a6 6 0 1 1 12 0v5l2 2H4zM10 20h4'],
+  ['calendar','Calendar','M4 6h16v14H4zM4 10h16M8 3v5M16 3v5'],
+  ['plant','Plant Info','M4 20V8l6-4v16M10 20h10V10h-10M13 13h4M13 16h4'],
+  '-',
+  ['logs','Data Logs','M12 3c4.4 0 8 1.3 8 3v12c0 1.7-3.6 3-8 3s-8-1.3-8-3V6c0-1.7 3.6-3 8-3zM4 6c0 1.7 3.6 3 8 3s8-1.3 8-3M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3'],
+  ['settings','Settings','M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1']
+];
+const nav=document.getElementById('nav');
+MENU.forEach(item=>{
+  if(item==='-'){nav.appendChild(document.createElement('hr'));return}
+  const [id,label,d]=item;
+  const b=document.createElement('button');b.dataset.go=id;
+  b.title=label;b.innerHTML=`<svg viewBox="0 0 24 24"><path d="${d}"/></svg><span class="lb">${label}</span>`;nav.appendChild(b);
+});
+const TITLES={overview:'Overview Plants',dashboard:'Dashboard',flow:'Power Flow',solar:'Solar',bess:'BESS Monitor',meter:'Meter',ems:'EMS',analytics:'Analytics',alarm:'Alarm',calendar:'Calendar',plant:'Plant Information',logs:'Data Logs',settings:'Settings'};
+function go(id){
+  document.querySelectorAll('.view').forEach(v=>v.hidden=true);
+  const view=document.querySelector(`.view[data-view="${TITLES[id]?id:'other'}"]`);view.hidden=false;
+  const label=MENU.find(m=>Array.isArray(m)&&m[0]===id)?.[1]||id;
+  document.getElementById('title').textContent=TITLES[id]||label;
+  document.getElementById('emptyTitle').textContent=label;
+  nav.querySelectorAll('button').forEach(b=>b.toggleAttribute('aria-current',b.dataset.go===id)||b.removeAttribute('aria-current'));
+  nav.querySelector(`[data-go="${id}"]`)?.setAttribute('aria-current','page');
+  document.getElementById('side').classList.remove('open');
+  if(id==='dashboard')drawChart();
+  if(id==='flow'&&mode3d)start3d();
+  if(['solar','bess','meter','analytics'].includes(id))drawPage(id);
+  if(id==='calendar')drawCal();if(id==='logs')drawLogs();
+  if(LIVE)renderPages(LIVE.d,LIVE.racks);
+}
+document.addEventListener('click',e=>{const t=e.target.closest('[data-go]');if(t)go(t.dataset.go)});
+let view='card';
+function setView(v){view=v;document.getElementById('vCard').setAttribute('aria-pressed',v==='card');document.getElementById('vTable').setAttribute('aria-pressed',v==='table');applyFilter();
+  try{localStorage.setItem('tpias-view',v)}catch(e){}}
+function applyFilter(){
+  const q=document.getElementById('search').value.trim().toLowerCase();
+  const hit=!q||'tpias / tpi all season tpias-001 saraburi'.includes(q);
+  document.getElementById('plantCard').hidden=!hit||view!=='card';
+  document.getElementById('plantTable').hidden=!hit||view!=='table';
+  document.getElementById('noMatch').hidden=hit;
+}
+document.getElementById('vCard').onclick=()=>setView('card');
+document.getElementById('vTable').onclick=()=>setView('table');
+document.getElementById('search').oninput=applyFilter;
+document.getElementById('collapseBtn').onclick=()=>{const a=document.querySelector('.app');a.classList.toggle('mini');
+  try{localStorage.setItem('tpias-mini',a.classList.contains('mini')?'1':'0')}catch(e){}};
+try{if(localStorage.getItem('tpias-mini')==='1')document.querySelector('.app').classList.add('mini');
+  const v=localStorage.getItem('tpias-view');if(v)view=v}catch(e){}
+document.getElementById('pselBtn').onclick=()=>{const p=document.getElementById('psel'),o=p.dataset.open!=='true';p.dataset.open=o;document.getElementById('pselBtn').setAttribute('aria-expanded',o)};
+document.getElementById('moreBtn').onclick=()=>{const d=document.getElementById('det'),b=document.getElementById('moreBtn'),o=d.hidden;
+  d.hidden=!o;b.setAttribute('aria-expanded',o);b.textContent=o?'▴ ย่อ':'▾ ข้อมูลเพิ่มเติม';document.getElementById('plantCard').classList.toggle('wide',o)};
+document.getElementById('menuBtn').onclick=()=>document.getElementById('side').classList.toggle('open');
+document.getElementById('themeBtn').onclick=()=>{
+  const r=document.documentElement,dark=getComputedStyle(r).getPropertyValue('--bg').trim()==='#0E1A2B';
+  r.dataset.theme=dark?'light':'dark';try{localStorage.setItem('tpias-theme',r.dataset.theme)}catch(e){}
+  drawChart();
+};
+try{const t=localStorage.getItem('tpias-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}
+
+/* ===== Mock model (kW) ===== */
+function solarAt(h){return h<6||h>18.2?0:Math.max(0,360*Math.sin(Math.PI*(h-6)/12.2))}
+function noise(i){const x=Math.sin(i*12.9898)*43758.5453;return x-Math.floor(x)}
+function loadAt(h,i){return 330+40*Math.sin(h/3)+25*(noise(i)-.5)+(h>8&&h<17?50:0)}
+let soc=9.4, recloserOpen=false, hist=[];
+function buildHistory(){
+  hist=[];const now=new Date(),mins=now.getHours()*60+now.getMinutes();let s=40;
+  for(let m=0;m<=mins;m+=5){
+    const h=m/60,i=m/5,solar=solarAt(h)*(0.85+0.15*noise(i+7)),load=loadAt(h,i);
+    let bess=0; if(h>=9&&h<16&&s>12){bess=Math.min(80,load-solar-50);bess=Math.max(0,bess)}
+    s=Math.max(5,Math.min(100,s-bess*5/60/1305*100));
+    hist.push({m,solar,load,bess,grid:load-solar-bess,soc:s});
+  }
+  soc=hist.length?hist[hist.length-1].soc:soc;
+}
+function mockLive(){
+  const now=new Date(),h=now.getHours()+now.getMinutes()/60,i=Date.now()/5000;
+  const solar=solarAt(h)*(0.85+0.15*noise(i)),load=loadAt(h,i);
+  let bess=0;if(h>=9&&h<16&&soc>12)bess=Math.max(0,Math.min(80,load-solar-50));
+  return {solar,load,bess,grid:load-solar-bess,soc,recloserOpen,ts:now};
+}
+async function fetchLive(){
+  if(DATA_SOURCE==='api'){
+    const r=await fetch(API_URL,{cache:'no-store'});if(!r.ok)throw new Error('API '+r.status);
+    const d=await r.json();d.ts=new Date(d.ts||Date.now());return d;
+  }
+  return mockLive();
+}
+
+/* ===== Render ===== */
+const f1=v=>v.toLocaleString('en-US',{maximumFractionDigits:1,minimumFractionDigits:1});
+const set=(id,v)=>{document.getElementById(id).textContent=v};
+function kwh(key){return hist.reduce((a,p)=>a+Math.max(0,key(p))*5/60,0)}
+function render(d){
+  set('kSolar',f1(d.solar));set('kSoc',Math.round(d.soc));set('kLoad',f1(d.load));set('kGrid',f1(d.grid));
+  set('tSolar',f1(d.solar));set('tSoc',d.soc.toFixed(1));set('tLoad',f1(d.load));set('tGrid',f1(d.grid));
+  set('tUpd',d.ts.toLocaleString('th-TH',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  const h=new Date().getHours()+new Date().getMinutes()/60, irr=solarAt(h)/360*950;
+  const x=(id,v,u)=>{document.getElementById(id).innerHTML=v+(u?`<small>${u}</small>`:'')};
+  const vdc=760+d.soc*0.6, idc=d.bess*1000/vdc, iL=d.load*1000/(Math.sqrt(3)*400*0.95);
+  x('xSolarP',f1(d.solar),'kW');x('xIrr',irr.toFixed(0),'W/m²');
+  x('xBessP',f1(d.bess),'kW');x('xBessM',d.bess>1?'Discharge':d.bess<-1?'Charge':'Idle');x('xBessS',d.soc.toFixed(1),'%');
+  x('xBessV',vdc.toFixed(1),'V');x('xBessI',idc.toFixed(1),'A');x('xBessT','27.5','°C');
+  x('xLoadP',f1(d.load),'kW');x('xLoadV',(398+2*noise(Date.now()/9e3)).toFixed(1),'V');x('xLoadI',iL.toFixed(1),'A');x('xLoadF','50.00','Hz');
+  x('xGridP',f1(Math.abs(d.grid)),'kW');x('xGridD',d.grid>=0?'Import':'Export');x('xGridV',(22400+200*noise(Date.now()/7e3)).toFixed(0),'V');x('xGridF','50.00','Hz');
+  const racks=[0,1,2,3,4].map(r=>({soc:Math.max(0,d.soc+(noise(r+3)-.5)*2),p:d.bess/5}));renderDash(d,racks);
+  document.getElementById('racks').innerHTML=[0,1,2,3,4].map(r=>{const sr=racks[r].soc,pr=racks[r].p;
+    return `<div class="rack"><div class="rh">Rack ${r+1}<span class="st">${Math.abs(pr)>.2?'Run':'Idle'}</span></div>
+    <div class="soc-row"><span>SOC</span><span class="num">${sr.toFixed(1)}%</span></div><div class="bar"><i style="width:${sr}%"></i></div>
+    <dl><dt>Power</dt><dd>${pr.toFixed(1)} kW</dd><dt>Volt</dt><dd>${(vdc+(noise(r)-.5)*4).toFixed(1)} V</dd><dt>Temp</dt><dd>${(26+noise(r+9)*3).toFixed(1)} °C</dd></dl></div>`}).join('');
+  set('socTxt',d.soc.toFixed(1)+'%');document.getElementById('socBar').style.width=d.soc+'%';
+  set('upd','อัปเดต '+d.ts.toLocaleTimeString('th-TH'));
+  set('dSolar',f1(d.solar));set('dBess',f1(d.bess));set('dLoad',f1(d.load));set('dGrid',f1(Math.abs(d.grid)));
+  set('dSoc',d.soc.toFixed(1)+'%');set('dMode',d.recloserOpen?'Off-grid':'On-grid');
+  set('tSolarTag',d.solar>1?'Generating':'Idle');
+  set('tBessTag',d.bess>1?'Discharging':d.bess<-1?'Charging':'Standby');
+  set('tGridTag',d.grid>=0?'Import':'Export');
+  set('dSolarDay',f1(kwh(p=>p.solar))+' kWh');set('dSolarLife','—');
+  set('dLoadDay',f1(kwh(p=>p.load))+' kWh');set('dLoadPk',f1(Math.max(0,...hist.map(p=>p.load)))+' kW');
+  set('dImp',f1(kwh(p=>p.grid))+' kWh');set('dExp',f1(kwh(p=>-p.grid))+' kWh');
+}
+function drawChart(){
+  const svg=document.getElementById('chart');if(!svg)return;
+  const W=1000,H=280,L=44,R=44,T=10,B=26,pw=W-L-R,ph=H-T-B,yMax=600,yMin=-100;
+  const x=m=>L+m/1440*pw,y=v=>T+(yMax-v)/(yMax-yMin)*ph,ys=s=>T+(100-s)/100*ph;
+  const cs=getComputedStyle(document.documentElement),c=n=>cs.getPropertyValue(n).trim();
+  let g='';
+  for(let v=yMin;v<=yMax;v+=100)g+=`<line class="ax" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" opacity="${v===0?1:.5}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
+  for(let h=0;h<=24;h+=3)g+=`<text x="${x(h*60)}" y="${H-8}" text-anchor="middle">${String(h).padStart(2,'0')}:00</text>`;
+  for(let s=0;s<=100;s+=25)g+=`<text x="${W-R+6}" y="${ys(s)+4}">${s}%</text>`;
+  const line=(k,col,fn=y)=>`<polyline fill="none" stroke="${col}" stroke-width="1.8" points="${hist.map(p=>x(p.m)+','+fn(p[k]).toFixed(1)).join(' ')}"/>`;
+  const area=(k,col)=>`<polygon fill="${col}" opacity=".14" points="${x(hist[0]?.m||0)},${y(0)} ${hist.map(p=>x(p.m)+','+y(p[k]).toFixed(1)).join(' ')} ${x(hist[hist.length-1]?.m||0)},${y(0)}"/>`;
+  g+=area('load',c('--load'))+area('solar',c('--solar'));
+  g+=line('solar',c('--solar'))+line('load',c('--load'))+line('grid',c('--grid'))+line('bess',c('--bess'))+line('soc',c('--ok'),ys);
+  svg.innerHTML=g;
+}
+
+/* ===== Dashboard extras ===== */
+const LIFE={load:9309000,solar:3606000,imp:5687000};
+function flowSvg(d,racks,target='flowSvg'){
+  const box=(x,y,w,h,col,title,v,sub1,sub2)=>`<rect class="fl-box" x="${x}" y="${y}" width="${w}" height="${h}" rx="10" stroke="${col}"/>
+   <text x="${x+w/2}" y="${y+24}" text-anchor="middle" fill="${col}" font-weight="700" font-size="14">${title}</text>
+   <text x="${x+w/2}" y="${y+50}" text-anchor="middle" class="fl-v">${v}</text>
+   <text x="${x+w/2}" y="${y+70}" text-anchor="middle" class="fl-s">${sub1||''}</text>
+   <text x="${x+w/2}" y="${y+86}" text-anchor="middle" class="fl-s">${sub2||''}</text>`;
+  const pulse=(x1,y1,x2,y2,col,v)=>Math.abs(v)<1?'':`<line class="pulse ${v>0?'fwd':'rev'}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}"/>`;
+  let g=`<text x="40" y="214" class="fl-s">LV bus TX-POL2</text><line class="bus" x1="40" y1="230" x2="860" y2="230"/>`;
+  // solar (top) -> bus
+  g+=`<line class="drop" x1="300" y1="130" x2="300" y2="230"/>`+pulse(300,130,300,230,'var(--solar)',d.solar);
+  g+=box(230,30,140,100,'var(--solar)','Solar',f1(d.solar)+' kW',f1(kwh(p=>p.solar))+' kWh/d');
+  // grid (top) -> bus
+  g+=`<line class="drop" x1="730" y1="130" x2="730" y2="230"/>`+pulse(730,130,730,230,'var(--grid)',d.grid);
+  g+=`<circle cx="730" cy="175" r="14" fill="var(--panel)" stroke="var(--grid)" stroke-width="2"/><text x="730" y="179" text-anchor="middle" class="fl-s">kWh</text>`;
+  g+=box(660,30,140,100,'var(--grid)','Grid',f1(Math.abs(d.grid))+' kW',(d.grid>=0?'▼ Import':'▲ Export'),'Recloser '+(d.recloserOpen?'Open':'Closed'));
+  // racks + load (bottom)
+  racks.forEach((r,i)=>{const x=50+i*125;
+    g+=`<line class="drop" x1="${x+50}" y1="230" x2="${x+50}" y2="320"/>`+pulse(x+50,320,x+50,230,'var(--bess)',r.p);
+    g+=box(x,320,100,100,'var(--bess)','Rack '+(i+1),r.p.toFixed(1)+' kW','SOC '+r.soc.toFixed(1)+'%',Math.abs(r.p)>.2?(r.p>0?'Discharge':'Charge'):'Standby');});
+  g+=`<line class="drop" x1="755" y1="230" x2="755" y2="320"/>`+pulse(755,230,755,320,'var(--load)',d.load);
+  g+=box(690,320,130,100,'var(--load)','Load',f1(d.load)+' kW',f1(kwh(p=>p.load))+' kWh/d');
+  document.getElementById(target).innerHTML=g;
+}
+function donut(id,items,center){
+  const tot=items.reduce((a,i)=>a+i.v,0)||1,R=60,C=2*Math.PI*R;let off=0,arcs=`<circle r="${R}" cx="85" cy="85" fill="none" stroke="var(--line)" stroke-width="22"/>`;
+  items.forEach(i=>{const len=i.v/tot*C;arcs+=`<circle r="${R}" cx="85" cy="85" fill="none" stroke="${i.c}" stroke-width="22" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}" transform="rotate(-90 85 85)"/>`;off+=len});
+  document.getElementById(id).innerHTML=`<svg viewBox="0 0 170 170">${arcs}<text x="85" y="82" text-anchor="middle" class="fl-s" fill="var(--muted)">${center[0]}</text><text x="85" y="102" text-anchor="middle" font-weight="700" fill="var(--text)" font-size="16">${center[1]}</text></svg>
+  <ul>${items.map(i=>`<li style="--c:${i.c}">${i.n} <b>${f1(i.v)} kWh</b> (${(i.v/tot*100).toFixed(1)}%)</li>`).join('')}</ul>`;
+}
+function renderDash(d,racks){
+  const sol=kwh(p=>p.solar),ld=kwh(p=>p.load),imp=kwh(p=>p.grid),exp=kwh(p=>-p.grid),dis=kwh(p=>p.bess);
+  const ss=ld?Math.max(0,Math.min(100,(ld-imp)/ld*100)):0;
+  set('ssPct',ss.toFixed(1)+'%');document.getElementById('ssBar').style.width=ss+'%';
+  set('ssSolar',f1(d.solar));set('ssLoad',f1(d.load));set('ssGrid',(d.grid>=0?'IMP ':'EXP ')+f1(Math.abs(d.grid)));
+  set('dSolarLife',Math.round(LIFE.solar+sol).toLocaleString()+' kWh');
+  flowSvg(d,racks);flowSvg(d,racks,'flowSvg2');LIVE={d,racks};renderPages(d,racks);
+  const st=[['Recloser',d.recloserOpen?'Open':'Closed',!d.recloserOpen],['PCS mode',d.recloserOpen?'Off-grid':'On-grid',true],
+    ['SCU (BESS) comm','OK',true],['Zero meter comm','OK',true],['Load meter comm','OK',true],['Recloser link (PUT)','OK',true],['SCU control mode','Remote',true]];
+  document.getElementById('sysStat').innerHTML=st.map(r=>`<tr><td>${r[0]}</td><td class="${r[2]?'okc':'bad'}">${r[1]}</td></tr>`).join('');
+  donut('donutCons',[{n:'Solar',v:Math.max(0,sol-exp),c:'var(--solar)'},{n:'BESS',v:dis,c:'var(--bess)'},{n:'Grid import',v:imp,c:'var(--grid)'}],['Load วันนี้',(ld/1000).toFixed(2)+' MWh']);
+  donut('donutPV',[{n:'ใช้เองในโรงงาน',v:Math.max(0,sol-exp),c:'var(--ok)'},{n:'Export',v:exp,c:'var(--grid)'}],['Solar วันนี้',(sol/1000).toFixed(2)+' MWh']);
+  const row=(k,v,u)=>`<tr><td>${k}</td><td>${v}<small>${u||''}</small></td></tr>`;
+  document.getElementById('detail2').innerHTML=document.getElementById('detail').innerHTML=
+   `<div style="--c:var(--solar)"><h5>Solar</h5><table>${row('Total power',f1(d.solar),'kW')}${row('Energy วันนี้',f1(sol),'kWh')}</table></div>`+
+   `<div style="--c:var(--bess)"><h5>BESS</h5><table>${row('Total power',f1(d.bess),'kW')}${row('Total SOC',d.soc.toFixed(1),'%')}${racks.map((r,i)=>row('Rack '+(i+1)+' P / SOC',r.p.toFixed(1)+' / '+r.soc.toFixed(1),'kW / %')).join('')}</table></div>`+
+   `<div style="--c:var(--load)"><h5>Load</h5><table>${row('Power',f1(d.load),'kW')}${row('Voltage L-L','398.6','V')}${row('Current',(d.load*1000/(Math.sqrt(3)*400*.95)).toFixed(1),'A')}${row('Frequency','50.00','Hz')}</table></div>`+
+   `<div style="--c:var(--grid)"><h5>Grid</h5><table>${row('Power',f1(d.grid),'kW')}${row('Voltage (22 kV)','22.45','kV')}${row('Frequency','50.00','Hz')}${row('Status',d.recloserOpen?'Disconnected':'Connected')}</table></div>`;
+  const ef=0.4999,lifeL=LIFE.load+ld,lifeS=LIFE.solar+sol;
+  const k=[['Load วันนี้',(ld/1000).toFixed(2)+' MWh','var(--load)'],['Solar วันนี้',f1(sol)+' kWh','var(--solar)'],['Load สะสม',(lifeL/1e6).toFixed(2)+' GWh','var(--load)'],
+    ['Solar สะสม',(lifeS/1e6).toFixed(2)+' GWh','var(--solar)'],['ลด CO₂ สะสม',(lifeS*ef/1000).toFixed(0)+' t','var(--ok)'],['RE ratio วันนี้',(ld?sol/ld*100:0).toFixed(1)+'%','var(--ok)'],['RE ratio สะสม',(lifeS/lifeL*100).toFixed(1)+'%','var(--ok)']];
+  document.getElementById('kstrip').innerHTML=k.map(x=>`<div style="--c:${x[2]}">${x[0]}<b>${x[1]}</b></div>`).join('');
+}
+
+/* ===== Power Flow 3D (three.js r128) ===== */
+let LIVE=null, mode3d=false, T3=null;
+document.getElementById('m2d').onclick=()=>setMode(false);
+document.getElementById('m3d').onclick=()=>setMode(true);
+function setMode(is3d){mode3d=is3d;
+  document.getElementById('m2d').setAttribute('aria-pressed',!is3d);document.getElementById('m3d').setAttribute('aria-pressed',is3d);
+  document.getElementById('stage2d').hidden=is3d;document.getElementById('stage3d').hidden=!is3d;
+  if(is3d)start3d();}
+function cssColor(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function start3d(){
+  const host=document.getElementById('three');
+  if(typeof THREE==='undefined'){host.insertAdjacentHTML('beforeend','<p class="demo" style="padding:20px">โหลด 3D engine ไม่สำเร็จ ใช้มุมมอง 2D แทน</p>');return}
+  if(!T3)T3=build3d(host);
+  T3.resize();if(!T3.running){T3.running=true;T3.loop()}
+}
+function build3d(host){
+  const scene=new THREE.Scene();
+  const cam=new THREE.PerspectiveCamera(40,1,0.1,200);
+  const ren=new THREE.WebGLRenderer({antialias:true,alpha:true});
+  ren.setPixelRatio(Math.min(2,window.devicePixelRatio||1));ren.shadowMap.enabled=true;
+  host.appendChild(ren.domElement);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x445566,0.75));
+  const sun=new THREE.DirectionalLight(0xffffff,0.8);sun.position.set(10,18,8);sun.castShadow=true;
+  sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-15,right:15,top:15,bottom:-15});scene.add(sun);
+  const M=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.7,metalness:.1},o));
+  const add=(geo,mat,x,y,z,ry=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.rotation.y=ry;m.castShadow=m.receiveShadow=true;scene.add(m);return m};
+  // platform
+  add(new THREE.BoxGeometry(22,0.6,15),M(0x6f8199),0,-0.3,0);
+  add(new THREE.BoxGeometry(22.4,0.25,15.4),M(0x3b4a5e),0,-0.72,0);
+  // switchboard (centre)
+  const hub=new THREE.Vector3(0,0,0);
+  add(new THREE.BoxGeometry(3.2,1.8,2),M(0xe6eaf0),0,0.9,0);
+  for(let i=0;i<4;i++)add(new THREE.BoxGeometry(.18,.18,.05),M(0x2b3442),-1.05+i*.7,1.5,1.03);
+  // load: factory
+  const pLoad=new THREE.Vector3(-6.5,0,-3.6);
+  add(new THREE.BoxGeometry(4.2,1.6,3),M(0xdfe4ea),pLoad.x,0.8,pLoad.z);
+  add(new THREE.BoxGeometry(4.2,.15,3),M(0x7fa38f),pLoad.x,1.68,pLoad.z);
+  [-0.5,0.3].forEach(dx=>add(new THREE.CylinderGeometry(.22,.26,1.4,16),M(0x5b6b7c),pLoad.x+dx,2.4,pLoad.z-0.5));
+  // grid: lattice tower
+  const pGrid=new THREE.Vector3(-6.5,0,3.8);
+  const tower=new THREE.Mesh(new THREE.CylinderGeometry(.25,1.3,5.5,4,6,true),new THREE.MeshBasicMaterial({color:0xf2f5f8,wireframe:true}));
+  tower.position.set(pGrid.x,2.75,pGrid.z);tower.rotation.y=Math.PI/4;scene.add(tower);
+  add(new THREE.BoxGeometry(2.6,.08,.08),M(0xf2f5f8),pGrid.x,4.6,pGrid.z,Math.PI/4);
+  // BESS: 5 rack cabinets
+  const pBess=new THREE.Vector3(6.3,0,-3.6), racks3=[];
+  for(let i=0;i<5;i++){racks3.push(add(new THREE.BoxGeometry(.9,2.2,1.6),M(0xeef1f5),pBess.x-2+i*1,1.1,pBess.z));
+    add(new THREE.BoxGeometry(.5,.12,.02),M(0x2f9e6a),pBess.x-2+i*1,1.9,pBess.z+0.81);}
+  // solar array
+  const pSolar=new THREE.Vector3(6.3,0,3.8);
+  for(let r=0;r<2;r++)for(let c=0;c<3;c++){const pn=add(new THREE.BoxGeometry(1.6,.06,1.1),M(0x2f5fa8,{metalness:.4,roughness:.3}),pSolar.x-1.8+c*1.8,0.75,pSolar.z-0.8+r*1.6);pn.rotation.x=-0.45;
+    add(new THREE.BoxGeometry(.06,.6,.06),M(0x9aa7b5),pSolar.x-1.8+c*1.8,0.3,pSolar.z-0.8+r*1.6);}
+  // cables + particles
+  const cable=(a)=>{const dir=new THREE.Vector3().subVectors(hub,a),len=dir.length();
+    const m=add(new THREE.CylinderGeometry(.09,.09,len,8),M(0xb8c2ce),(a.x+hub.x)/2,0.12,(a.z+hub.z)/2);
+    m.rotation.z=Math.PI/2;m.rotation.y=-Math.atan2(dir.z,dir.x);};
+  const links={solar:pSolar,bess:pBess,grid:pGrid,load:pLoad};Object.values(links).forEach(cable);
+  const pts={};const N=6;
+  Object.keys(links).forEach(k=>{pts[k]=[];for(let i=0;i<N;i++){const s=new THREE.Mesh(new THREE.SphereGeometry(.16,12,12),new THREE.MeshBasicMaterial({color:0xffffff}));s.position.y=.25;scene.add(s);pts[k].push(s)}});
+  // labels
+  const lab={};const defs={grid:['Grid','var(--load)',pGrid,4.6],load:['Load','var(--ok)',pLoad,3.4],bess:['BESS','var(--bess)',pBess,2.6],solar:['Solar PV','var(--solar)',pSolar,1.6]};
+  Object.entries(defs).forEach(([k,[n,c,p,h]])=>{const el=document.createElement('div');el.className='tag3';el.style.setProperty('--c',c);
+    el.innerHTML=`<span class="t">${n}</span><b>—</b><i></i>`;host.appendChild(el);lab[k]={el,pos:new THREE.Vector3(p.x,h,p.z)}});
+  // camera orbit
+  let th=-0.85,ph=0.9,rad=31,drag=null;
+  const place=()=>{cam.position.set(rad*Math.sin(ph)*Math.cos(th),rad*Math.cos(ph),rad*Math.sin(ph)*Math.sin(th));cam.lookAt(0,0.5,0)};
+  host.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,th,ph};host.setPointerCapture(e.pointerId)});
+  host.addEventListener('pointermove',e=>{if(!drag)return;th=drag.th+(e.clientX-drag.x)*0.008;ph=Math.max(0.35,Math.min(1.35,drag.ph-(e.clientY-drag.y)*0.006))});
+  host.addEventListener('pointerup',()=>drag=null);
+  host.addEventListener('wheel',e=>{e.preventDefault();rad=Math.max(14,Math.min(40,rad+e.deltaY*0.02))},{passive:false});
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let t=0;
+  const self={running:false,
+    resize(){const w=host.clientWidth,h=host.clientHeight;ren.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()},
+    loop(){
+      const vis=!document.getElementById('stage3d').hidden&&!document.querySelector('.view[data-view="flow"]').hidden;
+      if(!vis){self.running=false;return}
+      requestAnimationFrame(self.loop);place();t+=reduce?0:0.016;
+      if(LIVE){const d=LIVE.d;
+        const flows={solar:[d.solar,cssColor('--solar')],bess:[d.bess,cssColor('--bess')],grid:[d.grid,cssColor(d.grid>=0?'--load':'--grid')],load:[-d.load,cssColor('--ok')]};
+        // + = toward hub (source), load flows hub -> load
+        Object.entries(flows).forEach(([k,[v,col]])=>{const a=links[k],on=Math.abs(v)>1,sp=Math.min(1,0.25+Math.abs(v)/600);
+          pts[k].forEach((s,i)=>{s.visible=on;if(!on)return;s.material.color.set(col);
+            let f=((i/N)+t*sp*0.35)%1;if(v<0)f=1-f;s.position.x=a.x+(hub.x-a.x)*f;s.position.z=a.z+(hub.z-a.z)*f});});
+        racks3.forEach((m,i)=>m.material.color.set(Math.abs(LIVE.racks[i].p)>.2?0xd9f3e6:0xeef1f5));
+        const txt={grid:[f1(Math.abs(d.grid))+' kW',d.grid>=0?'นำเข้า ▼':'ส่งออก ▲'],load:[f1(d.load)+' kW','โหลด'],
+          bess:[f1(d.bess)+' kW',(d.bess>1?'discharge':d.bess<-1?'charge':'standby')+' · SOC '+d.soc.toFixed(0)+'%'],solar:[f1(d.solar)+' kW','ผลิตไฟ']};
+        const w=host.clientWidth,h=host.clientHeight;
+        Object.entries(lab).forEach(([k,o])=>{const v=o.pos.clone().project(cam);
+          o.el.style.left=((v.x+1)/2*w)+'px';o.el.style.top=((1-v.y)/2*h)+'px';
+          o.el.querySelector('b').textContent=txt[k][0];o.el.querySelector('i').textContent=txt[k][1]});}
+      ren.render(scene,cam);}
+  };
+  window.addEventListener('resize',()=>self.resize());
+  return self;
+}
+
+/* ===== Pages: Solar / BESS / Meter / EMS / Analytics ===== */
+const pad2=n=>String(n).padStart(2,'0');
+const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())};
+const SEL={solar:{date:todayStr(),step:5},bess:{date:todayStr(),step:5},meter:{date:todayStr(),step:5},analytics:{date:todayStr(),step:15}};
+const DAYCACHE={};
+function genDay(ds){
+  if(ds===todayStr())return hist.map(p=>({...p,racks:[0,1,2,3,4].map(r=>({soc:Math.max(0,p.soc+(noise(r+3)-.5)*2),p:p.bess/5}))}));
+  if(DAYCACHE[ds])return DAYCACHE[ds];
+  const seed=Number(ds.replace(/-/g,''))%997,out=[];let sc=35+noise(seed)*30;const cloud=0.6+0.4*noise(seed+1);
+  for(let m=0;m<1440;m+=5){const h=m/60,i=m/5+seed*300,solar=solarAt(h)*cloud*(0.8+0.2*noise(i+7)),load=loadAt(h,i);
+    let bess=0;if(h>=9&&h<16&&sc>12)bess=Math.max(0,Math.min(80,load-solar-50));
+    if(h>=0&&h<5&&sc<90)bess=-60; sc=Math.max(5,Math.min(100,sc-bess*5/60/1305*100));
+    out.push({m,solar,load,bess,grid:load-solar-bess,soc:sc,racks:[0,1,2,3,4].map(r=>({soc:Math.max(0,sc+(noise(r+3)-.5)*2),p:bess/5}))});}
+  return DAYCACHE[ds]=out;
+}
+function agg(pts,step){if(step<=5)return pts;const out=[];
+  for(let i=0;i<pts.length;i+=step/5){const g=pts.slice(i,i+step/5),o={m:g[0].m};
+    ['solar','load','bess','grid','soc'].forEach(k=>o[k]=g.reduce((a,p)=>a+p[k],0)/g.length);
+    o.racks=[0,1,2,3,4].map(r=>({soc:g.reduce((a,p)=>a+p.racks[r].soc,0)/g.length,p:g.reduce((a,p)=>a+p.racks[r].p,0)/g.length}));out.push(o)}
+  return out}
+function lineChart(id,pts,series,o={}){
+  const svg=document.getElementById(id);if(!svg)return;
+  const W=1000,H=280,L=50,R=o.right?50:16,T=10,B=26,pw=W-L-R,ph=H-T-B,yMax=o.yMax??600,yMin=o.yMin??-100;
+  const x=m=>L+m/1440*pw,y=v=>T+(yMax-v)/(yMax-yMin)*ph,yr=v=>T+(o.rMax-v)/(o.rMax-(o.rMin??0))*ph;
+  const cs=getComputedStyle(document.documentElement),c=n=>n.startsWith('--')?cs.getPropertyValue(n).trim():n;
+  const step=(yMax-yMin)/(o.ticks||7);let g='';
+  for(let v=yMin;v<=yMax+.01;v+=step)g+=`<line class="ax" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" opacity="${Math.abs(v)<.01?1:.45}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${Math.round(v)}</text>`;
+  for(let h=0;h<=24;h+=3)g+=`<text x="${x(h*60)}" y="${H-8}" text-anchor="middle">${pad2(h)}:00</text>`;
+  if(o.right)for(let v=o.rMin??0;v<=o.rMax;v+=(o.rMax-(o.rMin??0))/4)g+=`<text x="${W-R+6}" y="${yr(v)+4}">${Math.round(v)}${o.rUnit||''}</text>`;
+  if(pts.length){series.forEach(sr=>{const fy=sr.right?yr:y,col=c(sr.c),P=pts.map(p=>x(p.m)+','+fy(sr.f(p)).toFixed(1)).join(' ');
+    if(sr.area)g+=`<polygon fill="${col}" opacity=".14" points="${x(pts[0].m)},${fy(0)} ${P} ${x(pts[pts.length-1].m)},${fy(0)}"/>`;
+    g+=`<polyline fill="none" stroke="${col}" stroke-width="1.8" ${sr.dash?'stroke-dasharray="5 4"':''} points="${P}"/>`})}
+  svg.innerHTML=g;
+  const lg=document.getElementById(o.legend);if(lg)lg.innerHTML=series.map(sr=>`<span style="--c:${sr.c.startsWith('--')?'var('+sr.c+')':sr.c}">${sr.n}</span>`).join('');
+}
+function barChart(id,pts,series,o){
+  const svg=document.getElementById(id);const W=1000,H=280,L=50,R=16,T=10,B=26,pw=W-L-R,ph=H-T-B;
+  const vals=pts.flatMap(p=>series.map(s=>s.f(p))),yMax=Math.max(10,...vals)*1.1,y=v=>T+(yMax-v)/yMax*ph;
+  const cs=getComputedStyle(document.documentElement);let g='';
+  for(let i=0;i<=4;i++){const v=yMax*i/4;g+=`<line class="ax" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" opacity=".45"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${Math.round(v)}</text>`}
+  for(let h=0;h<=24;h+=3)g+=`<text x="${L+h*60/1440*pw}" y="${H-8}" text-anchor="middle">${pad2(h)}:00</text>`;
+  const slot=pw/(1440/o.step),bw=Math.max(1,slot*0.8/series.length);
+  pts.forEach(p=>series.forEach((s,j)=>{const v=s.f(p);if(v<=0)return;const xx=L+p.m/1440*pw+j*bw;
+    g+=`<rect x="${xx.toFixed(1)}" y="${y(v).toFixed(1)}" width="${bw.toFixed(2)}" height="${(ph+T-y(v)).toFixed(1)}" fill="${cs.getPropertyValue(s.c).trim()}"/>`}));
+  svg.innerHTML=g;document.getElementById(o.legend).innerHTML=series.map(s=>`<span style="--c:var(${s.c})">${s.n}</span>`).join('');
+}
+function ctrlHTML(k){const sel=SEL[k];return `<label class="sr">วันที่ <input type="date" value="${sel.date}" max="${todayStr()}" data-k="${k}" data-f="date"></label>
+  <select data-k="${k}" data-f="step" aria-label="Interval">${[5,15,60].map(v=>`<option value="${v}" ${sel.step==v?'selected':''}>${v===60?'1 ชม.':v+' นาที'}</option>`).join('')}</select>`}
+document.querySelectorAll('.ctrl[data-for]').forEach(el=>el.innerHTML=ctrlHTML(el.dataset.for));
+document.addEventListener('change',e=>{const t=e.target;if(!t.dataset.k)return;SEL[t.dataset.k][t.dataset.f]=t.dataset.f==='step'?Number(t.value):t.value;drawPage(t.dataset.k)});
+function drawPage(k){
+  const pts=agg(genDay(SEL[k].date),SEL[k].step);
+  if(k==='solar')lineChart('cSolar',pts,[{n:'Solar รวม',c:'--solar',f:p=>p.solar,area:true},{n:'Solar system 1',c:'--grid',f:p=>p.solar,dash:true}],{yMin:0,yMax:450,ticks:3,legend:'lSolar'});
+  if(k==='bess')lineChart('cBess',pts,[{n:'Power (kW)',c:'--load',f:p=>p.bess},{n:'SOC',c:'--bess',f:p=>p.soc,right:true},
+    ...[0,1,2,3,4].map(r=>({n:'Rack '+(r+1),c:['#22b8cf','#f59f00','#40c057','#e64980','#7950f2'][r],f:p=>p.racks[r].soc,right:true,dash:true}))],
+    {yMin:-150,yMax:150,ticks:4,right:true,rMax:100,rUnit:'%',legend:'lBess'});
+  if(k==='meter')lineChart('cMeter',pts,[{n:'Load',c:'--load',f:p=>p.load},{n:'Grid',c:'--grid',f:p=>p.grid},{n:'BESS (PCS)',c:'--bess',f:p=>p.bess}],{yMin:-150,yMax:600,ticks:5,legend:'lMeter'});
+  if(k==='analytics'){
+    const st=(f)=>{const v=pts.map(f);return v.length?[v.reduce((a,b)=>a+b,0)/v.length,Math.max(...v),Math.min(...v)]:[0,0,0]};
+    document.getElementById('anStats').innerHTML=[['Solar','--solar',p=>p.solar],['Load','--load',p=>p.load],['BESS','--bess',p=>p.bess],['Grid','--grid',p=>p.grid]].map(([n,c,f])=>{const [a,mx,mn]=st(f);
+      return `<div class="tile" style="--c:var(${c})"><div class="top">${n}</div><div class="kv" style="grid-template-columns:1fr"><table><tr><td>Avg</td><td>${f1(a)}<small>kW</small></td></tr><tr><td>Max</td><td>${f1(mx)}<small>kW</small></td></tr><tr><td>Min</td><td>${f1(mn)}<small>kW</small></td></tr></table></div></div>`}).join('');
+    lineChart('cAn1',pts,[{n:'Solar',c:'--solar',f:p=>p.solar,area:true},{n:'BESS',c:'--bess',f:p=>p.bess},{n:'Load',c:'--load',f:p=>p.load,area:true},{n:'Grid',c:'--grid',f:p=>p.grid}],{yMin:-200,yMax:600,ticks:4,legend:'lAn1'});
+    const st2=Math.max(60,SEL.analytics.step),e=agg(genDay(SEL.analytics.date),st2),h=st2/60;
+    barChart('cAn2',e,[{n:'Solar',c:'--solar',f:p=>p.solar*h},{n:'BESS ชาร์จ',c:'--ok',f:p=>-p.bess*h},{n:'BESS จ่าย',c:'--bess',f:p=>p.bess*h},{n:'Load',c:'--load',f:p=>p.load*h},{n:'Grid import',c:'--grid',f:p=>p.grid*h}],{step:st2,legend:'lAn2'});
+    lineChart('cAn3',pts,[{n:'Power (kW)',c:'--load',f:p=>p.bess},{n:'SOC',c:'--bess',f:p=>p.soc,right:true}],{yMin:-150,yMax:150,ticks:4,right:true,rMax:100,rUnit:'%',legend:'lAn3'});
+  }
+}
+const kvT=rows=>`<table>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}<small>${r[2]||''}</small></td></tr>`).join('')}</table>`;
+const kv2=(a,b)=>`<div class="kv">${kvT(a)}${kvT(b)}</div>`;
+const SCHED={
+ W:[[1,'00:00','04:59','STANDBY',200,1000,3,100],[1,'05:00','08:59','STANDBY',0,0,3,100],[1,'09:00','23:59','GRID TRACKING',500,50,3,100],[0,'15:00','16:00','OFF',100,1000,50,100],[0,'00:00','00:00','OFF',0,0,0,100],[0,'00:00','00:00','OFF',0,0,0,100]],
+ H:[[0,'00:00','00:00','OFF',0,0,0,100],[0,'00:00','00:00','OFF',0,0,0,100],[0,'00:00','00:00','OFF',0,0,0,100],[0,'00:00','00:00','OFF',0,0,0,100],[0,'00:00','00:00','OFF',0,0,0,100],[0,'00:00','00:00','OFF',0,0,0,100]]};
+let schSet='W';
+document.getElementById('schW').onclick=()=>{schSet='W';document.getElementById('schW').setAttribute('aria-pressed',true);document.getElementById('schH').setAttribute('aria-pressed',false);if(LIVE)renderPages(LIVE.d,LIVE.racks)};
+document.getElementById('schH').onclick=()=>{schSet='H';document.getElementById('schH').setAttribute('aria-pressed',true);document.getElementById('schW').setAttribute('aria-pressed',false);if(LIVE)renderPages(LIVE.d,LIVE.racks)};
+function renderPages(d,racks){
+  renderAlarm(d,racks);renderPlant(d);
+  const iA=(p,v=400,pf=.99)=>Math.abs(p)*1000/(Math.sqrt(3)*v*pf);
+  // Solar
+  set('sNow',f1(d.solar));set('sDay',f1(kwh(p=>p.solar)));set('sTag',d.solar>1?'Generating':'Idle');
+  const sI=iA(d.solar);
+  document.getElementById('sCard').innerHTML=`<div class="chead"><h4 style="color:var(--solar)">Solar system 1</h4><span class="tag" style="--c:var(--solar)">${d.solar>1?'Generating':'Idle'}</span></div>
+   <div class="soc-row"><span>Power</span><span class="num" style="color:var(--solar)">${f1(d.solar)} kW</span></div><div class="bar"><i style="width:${Math.min(100,d.solar/360*100)}%;background:var(--solar)"></i></div>
+   ${kv2([['Daily kWh',f1(kwh(p=>p.solar)),'kWh'],['Power factor','0.990'],['I1',sI.toFixed(1),'A'],['I3',(sI*1.01).toFixed(1),'A'],['V12','399.8','V'],['V31','400.6','V']],
+         [['Total kWh',Math.round(LIFE.solar+kwh(p=>p.solar)).toLocaleString(),'kWh'],['DC current',(d.solar*1000/650).toFixed(1),'A'],['I2',(sI*0.99).toFixed(1),'A'],['Q','0.0','kVAR'],['V23','401.2','V']])}`;
+  // BESS
+  const st=d.bess>1?'Discharging':d.bess<-1?'Charging':'Standby';
+  document.getElementById('scuCard').innerHTML=`<div class="chead"><h4 style="color:var(--bess)">SCU (System Control Unit)</h4><span class="tag" style="--c:var(--bess)">${st}</span></div>
+   <div class="soc-row"><span>SOC</span><span class="num">${d.soc.toFixed(1)}%</span></div><div class="bar"><i style="width:${d.soc}%"></i></div>
+   <div class="chips" style="--c:var(--bess)"><span>Fault</span><span>Alarm</span><span class="on">${st}</span><span class="on">${d.recloserOpen?'Off-grid':'On-grid'}</span><span class="on">Remote</span></div>
+   ${kv2([['SOH','99.0','%'],['Current (DC)',(d.bess*1000/835).toFixed(1),'A'],['Charge today',f1(kwh(p=>-p.bess)),'kWh'],['Charge total','213,353.8','kWh']],
+         [['Power (P)',f1(d.bess),'kW'],['PCS AC power',f1(d.bess*0.97),'kW'],['Discharge today',f1(kwh(p=>p.bess)),'kWh'],['Discharge total','211,576.6','kWh']])}`;
+  document.getElementById('rackGrid').innerHTML=racks.map((r,i)=>{const v=830+i*1.5+noise(i)*4,s=Math.abs(r.p)>.2?(r.p>0?'Discharge':'Charge'):'Standby';
+   return `<div class="card"><div class="chead"><h4 style="color:var(--bess)">Rack ${i+1}</h4><span class="tag" style="--c:var(--bess)">${s}</span></div>
+   <div class="soc-row"><span>SOC</span><span class="num">${r.soc.toFixed(1)}%</span></div><div class="bar"><i style="width:${r.soc}%"></i></div>
+   ${kv2([['SOH','99.0','%'],['Current',(r.p*1000/v).toFixed(1),'A'],['Cell V max',(3.2+noise(i+1)*.02).toFixed(3),'V'],['Cell V min',(3.19+noise(i+2)*.01).toFixed(3),'V'],['Charge total',(42000+i*137).toLocaleString(),'kWh']],
+         [['Voltage',v.toFixed(1),'V'],['Power',r.p.toFixed(1),'kW'],['Cell temp max',(27+noise(i+4)*2).toFixed(1),'°C'],['Cell temp min',(25+noise(i+5)*2).toFixed(1),'°C'],['Discharge total',(41000+i*121).toLocaleString(),'kWh']])}</div>`}).join('');
+  // Meter
+  const gI=iA(d.grid,22400,.87),lI=iA(d.load,400,.95);
+  const mcard=(n,c,p,rows1,rows2,tag)=>`<div class="card"><div class="chead"><h4 style="color:var(${c})">${n}</h4><span class="tag" style="--c:var(${c})">${tag}</span></div>
+   <small style="color:var(--muted)">Active power (P)</small><div class="big2" style="--c:var(${c})">${f1(p)} <small>kW</small></div>${kv2(rows1,rows2)}</div>`;
+  document.getElementById('meterGrid').innerHTML=
+   mcard('Zero meter (Grid · 22 kV)','--grid',d.grid,[['Q',f1(Math.abs(d.grid)*0.56),'kVAR'],['PF','0.870'],['V1 (L-N)','12.94','kV'],['I1',gI.toFixed(2),'A'],['Daily import',f1(kwh(p=>p.grid)),'kWh']],
+     [['S',f1(Math.abs(d.grid)/0.87),'kVA'],['V (L-L)','22.42','kV'],['I2',(gI*1.02).toFixed(2),'A'],['I3',(gI*0.99).toFixed(2),'A'],['Daily export',f1(kwh(p=>-p.grid)),'kWh']],d.grid>=0?'Import':'Export')+
+   mcard('Load meter (LV 400 V)','--load',d.load,[['Q',f1(d.load*0.33),'kVAR'],['PF','0.950'],['V (L-L)','398.6','V'],['I1',lI.toFixed(1),'A']],
+     [['S',f1(d.load/0.95),'kVA'],['Freq','50.00','Hz'],['I2',(lI*1.01).toFixed(1),'A'],['Daily kWh',f1(kwh(p=>p.load)),'kWh']],'Active')+
+   mcard('BESS meter (PCS AC)','--bess',d.bess,[['Q','0.0','kVAR'],['PF',Math.abs(d.bess)>1?'0.990':'—'],['V (L-L)','401.0','V']],
+     [['S',f1(Math.abs(d.bess)),'kVA'],['Freq','50.00','Hz'],['I',iA(d.bess).toFixed(1),'A']],Math.abs(d.bess)>1?'Active':'Idle');
+  // EMS
+  const ld=kwh(p=>p.load),sol=kwh(p=>p.solar),lifeL=LIFE.load+ld,lifeS=LIFE.solar+sol,ef=0.4999;
+  document.getElementById('emsTiles').innerHTML=[['Load power',f1(d.load),'kW','--load'],['Load วันนี้',f1(ld),'kWh','--load'],['RE ratio (ตอนนี้)',(d.load?d.solar/d.load*100:0).toFixed(1),'%','--ok'],['ลด CO₂ สะสม',(lifeS*ef/1000).toFixed(1),'tCO₂','--ok']]
+    .map(([n,v,u,c])=>`<div class="tile" style="--c:var(${c})"><div class="top">${n}</div><div class="big num">${v}<small>${u}</small></div></div>`).join('');
+  document.getElementById('emsSum').innerHTML=`<div class="card"><h4>Energy summary</h4><div class="kv" style="grid-template-columns:1fr">${kvT([['Load power',f1(d.load),'kW'],['Load วันนี้',f1(ld),'kWh'],['Load สะสม',Math.round(lifeL).toLocaleString(),'kWh']])}</div></div>
+    <div class="card"><h4>Renewable & environment</h4><div class="kv" style="grid-template-columns:1fr">${kvT([['RE ratio วันนี้',(ld?sol/ld*100:0).toFixed(1),'%'],['RE ratio สะสม',(lifeS/lifeL*100).toFixed(1),'%'],['CO₂ avoided',Math.round(lifeS*ef).toLocaleString(),'kg']])}</div></div>`;
+  const now=new Date(),hm=pad2(now.getHours())+':'+pad2(now.getMinutes());
+  document.getElementById('schBody').innerHTML=SCHED[schSet].map((r,i)=>{const act=schSet==='W'&&r[0]&&hm>=r[1]&&hm<=r[2];
+    return `<tr class="${act?'act':''}"><td>${i+1}</td><td>${r[0]?'<span class="okc">● Enable</span>':'<span style="color:var(--muted)">○ Disable</span>'}</td><td>${r[1]}</td><td>${r[2]}</td><td><b>${r[3]}</b></td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td><td>${r[7]}</td></tr>`}).join('');
+}
+
+/* ===== Tabs (generic) ===== */
+document.addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;const grp=b.parentElement;
+  grp.querySelectorAll('[data-tab]').forEach(x=>{x.setAttribute('aria-pressed',x===b);const p=document.getElementById(x.dataset.tab);if(p)p.hidden=x!==b});
+  if(b.dataset.tab==='lgT'||b.dataset.tab==='lgC')drawLogs();});
+const store={get(k,d){try{const v=localStorage.getItem('tpias-'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('tpias-'+k,JSON.stringify(v))}catch(e){}}};
+
+/* ===== Alarm ===== */
+const RULES=[
+ ['SCU comm lost','ไม่ได้ข้อมูลจาก SCU > 30 s','Critical',d=>d.scuLost],
+ ['Recloser link lost','ไม่ได้ข้อมูลจาก Recloser PLC > 3 s','Critical',d=>d.reclLost],
+ ['Recloser open','Recloser = Open','Critical',d=>d.recloserOpen],
+ ['PCS off-grid ขณะ recloser ปิด','PCS_OffGrid = 1 AND Recloser closed','Critical',d=>d.pcsOff&&!d.recloserOpen],
+ ['BESS fault','SCU/PCS fault bit = 1','Critical',d=>d.fault],
+ ['Grid export','Grid < −5 kW นาน > 10 s (zero export)','Warning',d=>d.grid<-5],
+ ['SOC low','Total SOC < 10 %','Warning',d=>d.soc<10],
+ ['SOC very low','Total SOC < 5 %','Critical',d=>d.soc<5],
+ ['Rack SOC imbalance','ต่างกัน > 5 %','Warning',d=>d.imb>5],
+ ['Cell temp high','Cell temp > 45 °C','Warning',d=>false],
+ ['SCU local mode','SCU control mode = Local','Warning',d=>false],
+ ['Load high','Load > 600 kW','Warning',d=>d.load>600],
+ ['Grid import high','Import > Incoming limit + 50 kW','Warning',d=>false],
+ ['Meter comm lost','ไม่ได้ข้อมูลมิเตอร์ > 30 s','Critical',d=>false],
+ ['Data stale (web)','หน้าเว็บไม่ได้ข้อมูลใหม่ > 30 s','Warning',d=>false]];
+let ACK=store.get('ack',{});const SINCE={};
+function renderAlarm(d,racks){
+  const socs=racks.map(r=>r.soc),x={...d,imb:Math.max(...socs)-Math.min(...socs)};
+  const act=RULES.map((r,i)=>({i,r,on:r[3](x)})).filter(a=>a.on);
+  act.forEach(a=>{SINCE[a.i]=SINCE[a.i]||new Date()});RULES.forEach((r,i)=>{if(!act.find(a=>a.i===i)){delete SINCE[i];delete ACK[i]}});
+  const crit=act.filter(a=>a.r[2]==='Critical'&&!ACK[a.i]).length,warn=act.filter(a=>a.r[2]==='Warning'&&!ACK[a.i]).length,ack=act.filter(a=>ACK[a.i]).length;
+  document.getElementById('alSum').innerHTML=[['Critical',crit,'--load'],['Warning',warn,'--solar'],['Acknowledged',ack,'--muted']].map(([n,v,c])=>`<div class="tile" style="--c:var(${c});text-align:center"><div class="top" style="justify-content:center">${n}</div><div class="big num" style="font-size:40px">${v}</div></div>`).join('');
+  document.getElementById('alList').innerHTML=act.length?act.map(a=>`<div class="alrow" style="--c:var(${a.r[2]==='Critical'?'--load':'--solar'})"><span class="lv">${a.r[2]}</span>
+    <span class="tx"><b>${a.r[0]}</b><small>${a.r[1]} · ตั้งแต่ ${SINCE[a.i].toLocaleTimeString('th-TH')}</small></span>
+    ${ACK[a.i]?'<span class="demo">รับทราบแล้ว</span>':`<button class="btn" data-ack="${a.i}">รับทราบ</button>`}</div>`).join(''):'<p class="demo" style="text-align:center;padding:30px">✔ ไม่มี alarm ที่ active</p>';
+  set('ruleCnt',RULES.length);
+  document.getElementById('ruleBody').innerHTML=RULES.map((r,i)=>`<tr><td>${i+1}</td><td><b>${r[0]}</b></td><td>${r[1]}</td><td style="color:var(${r[2]==='Critical'?'--load':'--solar'})">${r[2]}</td><td>${act.find(a=>a.i===i)?'<span class="bad">● Active</span>':'<span class="okc">● Normal</span>'}</td></tr>`).join('');
+  const nb=nav.querySelector('[data-go="alarm"] .lb');if(nb)nb.innerHTML='Alarm'+(crit+warn?` <span class="tag" style="--c:var(--load)">${crit+warn}</span>`:'');
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-ack]');if(!b)return;ACK[b.dataset.ack]=1;store.set('ack',ACK);if(LIVE)renderAlarm(LIVE.d,LIVE.racks)});
+
+/* ===== Calendar ===== */
+const MTH=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+let HOL=store.get('hol',{'2026-10-13':'วันนวมินทรมหาราช','2026-10-23':'วันปิยมหาราช','2026-10-26':'วันออกพรรษา'});
+let calY=new Date().getFullYear(),calM=new Date().getMonth(),calSel=null;
+const ymd=(y,m,d)=>y+'-'+pad2(m+1)+'-'+pad2(d);
+function drawCal(){
+  set('calTitle',MTH[calM]+' พ.ศ. '+(calY+543));set('calSub',new Date(calY,calM,1).toLocaleDateString('en-US',{month:'long',year:'numeric'}));
+  const first=new Date(calY,calM,1).getDay(),days=new Date(calY,calM+1,0).getDate(),td=todayStr();
+  let g=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'].map((n,i)=>`<div class="hd ${i==0?'sun':i==6?'sat':''}">${n}</div>`).join('');
+  for(let i=0;i<first;i++)g+='<div style="cursor:default"></div>';
+  for(let dd=1;dd<=days;dd++){const k=ymd(calY,calM,dd),w=(first+dd-1)%7;
+    g+=`<div data-day="${k}" class="${w==0?'sun':w==6?'sat':''} ${HOL[k]?'hol':''} ${k===td?'today':''} ${k===calSel?'sel':''}"><b>${dd}</b>${HOL[k]?`<small>${HOL[k]}</small>`:''}</div>`}
+  document.getElementById('calGrid').innerHTML=g;
+  const hs=Object.entries(HOL).filter(([k])=>k.startsWith(calY+'-'+pad2(calM+1))).sort();
+  document.getElementById('calHol').innerHTML=hs.length?hs.map(([k,n])=>`<div class="alrow"><b style="color:var(--load);width:28px">${Number(k.slice(8))}</b><span class="tx">${n}</span></div>`).join(''):'<p class="demo">ไม่มีวันหยุด</p>';
+  document.getElementById('hBody').innerHTML=Object.entries(HOL).sort().map(([k,n])=>`<tr><td>${k}</td><td>${n}</td><td><button class="btn" data-delhol="${k}">ลบ</button></td></tr>`).join('');
+}
+function calDetail(k){
+  calSel=k;drawCal();const dt=new Date(k+'T00:00'),w=dt.getDay(),hol=HOL[k]||(w===0?'วันอาทิตย์':''),future=k>todayStr();
+  let body=`<h4>${dt.toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h4>
+   <div class="kv" style="grid-template-columns:1fr">${kvT([['ประเภทวัน',hol?'วันหยุด':'วันทำงาน'],['EMS schedule',hol?'Holiday':'Working day'],...(hol?[['หมายเหตุ',hol]]:[])])}`;
+  if(!future){const pts=genDay(k),e=f=>pts.reduce((a,p)=>a+Math.max(0,f(p))*5/60,0);
+    body+=kvT([['Solar',f1(e(p=>p.solar)),'kWh'],['Load',f1(e(p=>p.load)),'kWh'],['Grid import',f1(e(p=>p.grid)),'kWh'],['BESS discharge',f1(e(p=>p.bess)),'kWh']])}
+  document.getElementById('calDetail').innerHTML=body+'</div>';
+}
+document.addEventListener('click',e=>{const d=e.target.closest('[data-day]');if(d)calDetail(d.dataset.day);
+  const h=e.target.closest('[data-delhol]');if(h){delete HOL[h.dataset.delhol];store.set('hol',HOL);drawCal()}});
+document.getElementById('calPrev').onclick=()=>{calM--;if(calM<0){calM=11;calY--}drawCal()};
+document.getElementById('calNext').onclick=()=>{calM++;if(calM>11){calM=0;calY++}drawCal()};
+document.getElementById('calToday').onclick=()=>{calY=new Date().getFullYear();calM=new Date().getMonth();calDetail(todayStr())};
+document.getElementById('hAdd').onclick=()=>{const k=document.getElementById('hDate').value,n=document.getElementById('hName').value.trim();if(!k||!n)return;HOL[k]=n;store.set('hol',HOL);document.getElementById('hName').value='';drawCal()};
+
+/* ===== Plant info ===== */
+let PLANT=store.get('plant',{name:'TPIAS / TPI ALL SEASON',id:'tpias-001',addr:'49/1 หมู่ 1 ถนนพิชัยรณรงค์สงคราม ต.นาโฉง อ.เมือง จ.สระบุรี 18000',pv:'744',bess:'1,305',pcs:'675'});
+function renderPlant(d){
+  document.getElementById('piGen').innerHTML=kvT([['Plant name',PLANT.name],['Device ID',PLANT.id],['Location',PLANT.addr],['ขอบเขต island','Recloser 22 kV (ทั้งไซต์)']]);
+  document.getElementById('piLive').innerHTML=kvT([['Solar',f1(d.solar),'kW'],['Load',f1(d.load),'kW'],['Grid',f1(d.grid),'kW'],['BESS SOC',d.soc.toFixed(1),'%'],['Load วันนี้',f1(kwh(p=>p.load)),'kWh']]);
+  document.getElementById('piEq').innerHTML=kvT([['PV capacity','⚠ '+PLANT.pv,'kWp'],['BESS','Jinko 5 rack × 261 kWh = ⚠ '+PLANT.bess,'kWh'],['PCS','⚠ '+PLANT.pcs,'kW'],['Recloser','Schneider ADVC2 (22 kV)'],['Zero meter / PV','Data logger'],['Controller','S7-1200 (BESS PLC, Recloser PLC SIPLUS)']]);
+  document.getElementById('plantForm').innerHTML=[['name','ชื่อ plant'],['id','Device ID'],['addr','ที่อยู่'],['pv','PV capacity (kWp)'],['bess','BESS capacity (kWh)'],['pcs','PCS rating (kW)']].map(([k,n])=>`<label>${n}<input data-pf="${k}" value="${PLANT[k]}"></label>`).join('');
+}
+document.getElementById('plantSave').onclick=()=>{document.querySelectorAll('[data-pf]').forEach(i=>PLANT[i.dataset.pf]=i.value);store.set('plant',PLANT);set('plantMsg','บันทึกแล้ว');if(LIVE)renderPlant(LIVE.d)};
+
+/* ===== Data logs ===== */
+let LG={days:1,step:60,on:{solar:1,bess:1,load:1,grid:1,soc:0}};
+document.getElementById('lgRange').innerHTML=[[1,'วันนี้'],[2,'2 วัน'],[7,'7 วัน']].map(([v,n])=>`<button data-lgd="${v}" aria-pressed="${v===1}">${n}</button>`).join('');
+document.getElementById('lgSeries').innerHTML=[['solar','Solar','--solar'],['bess','BESS','--bess'],['load','Load','--load'],['grid','Grid','--grid'],['soc','SOC','--ok']].map(([k,n,c])=>`<label style="font-size:13px"><input type="checkbox" data-lgs="${k}" ${LG.on[k]?'checked':''}> <span style="color:var(${c})">●</span> ${n}</label>`).join('');
+document.addEventListener('click',e=>{const b=e.target.closest('[data-lgd]');if(!b)return;LG.days=Number(b.dataset.lgd);document.querySelectorAll('[data-lgd]').forEach(x=>x.setAttribute('aria-pressed',x===b));drawLogs()});
+document.addEventListener('change',e=>{if(e.target.dataset.lgs){LG.on[e.target.dataset.lgs]=e.target.checked;drawLogs()}if(e.target.id==='lgStep'){LG.step=Number(e.target.value);drawLogs()}});
+function drawLogs(){
+  const pts=[];for(let k=LG.days-1;k>=0;k--){const dt=new Date();dt.setDate(dt.getDate()-k);const ds=dt.getFullYear()+'-'+pad2(dt.getMonth()+1)+'-'+pad2(dt.getDate());
+    agg(genDay(ds),LG.step).forEach(p=>pts.push({...p,day:LG.days-1-k,ds}))}
+  const M=1440*LG.days,ser=[['solar','Solar','--solar'],['bess','BESS','--bess'],['load','Load','--load'],['grid','Grid','--grid']].filter(s=>LG.on[s[0]]);
+  const scaled=pts.map(p=>({...p,m:(p.day*1440+p.m)/LG.days}));
+  lineChart('cLog',scaled,[...ser.map(([k,n,c])=>({n,c,f:p=>p[k]})),...(LG.on.soc?[{n:'SOC',c:'--ok',f:p=>p.soc,right:true}]:[])],{yMin:-200,yMax:600,ticks:4,right:LG.on.soc,rMax:100,rUnit:'%',legend:'lLog'});
+  if(LG.days>1){const svg=document.getElementById('cLog');svg.querySelectorAll('text[text-anchor=middle]').forEach(t=>t.remove());
+    for(let k=0;k<LG.days;k++)svg.insertAdjacentHTML('beforeend',`<text x="${50+(k+.5)/LG.days*934}" y="272" text-anchor="middle">${pts.find(p=>p.day===k)?.ds.slice(5)||''}</text>`)}
+  const av=f=>pts.length?pts.reduce((a,p)=>a+f(p),0)/pts.length:0;
+  document.getElementById('lgStats').innerHTML=[['Records',pts.length.toLocaleString()],['Avg solar',f1(av(p=>p.solar))+' kW'],['Max solar',f1(Math.max(0,...pts.map(p=>p.solar)))+' kW'],['Avg load',f1(av(p=>p.load))+' kW'],['SOC avg / min',av(p=>p.soc).toFixed(1)+' / '+Math.min(...pts.map(p=>p.soc)).toFixed(1)+' %'],['Avg grid',f1(av(p=>p.grid))+' kW']].map(([n,v])=>`<div>${n}<b>${v}</b></div>`).join('');
+  if(!document.getElementById('lgT').hidden)document.getElementById('lgBody').innerHTML=pts.slice().reverse().slice(0,500).map(p=>`<tr><td style="text-align:left">${p.ds} ${pad2(Math.floor(p.m/60))}:${pad2(p.m%60)}</td><td>${f1(p.solar)}</td><td>${f1(p.bess)}</td><td>${f1(p.load)}</td><td>${f1(p.grid)}</td><td>${p.soc.toFixed(1)}</td></tr>`).join('');
+}
+
+/* ===== Settings: theme presets + data source ===== */
+const THEMES={'Default':null,'Navy':{'--bg':'#0B1426','--panel':'#11203A','--panel-2':'#172A4A','--line':'#22385E','--brand':'#4C8DFF'},'Black':{'--bg':'#050607','--panel':'#0E1013','--panel-2':'#15181D','--line':'#22262D','--brand':'#F5B33C'},
+ 'Forest':{'--bg':'#0A1712','--panel':'#11231B','--panel-2':'#173026','--line':'#214034','--brand':'#3CCB86'},'Carbon':{'--bg':'#121212','--panel':'#1B1B1B','--panel-2':'#242424','--line':'#333','--brand':'#FF8A3C'},'Midnight':{'--bg':'#100B1F','--panel':'#181030','--panel-2':'#21173F','--line':'#2E2254','--brand':'#A897FF'},
+ 'Corporate (TPI)':{'--bg':'#0E1A2B','--panel':'#15243A','--panel-2':'#1B2D47','--line':'#26395A','--brand':'#C9A04A'}};
+let curTheme=store.get('preset','Default');
+function applyTheme(n){const r=document.documentElement;Object.values(THEMES).forEach(t=>t&&Object.keys(t).forEach(k=>r.style.removeProperty(k)));
+  if(THEMES[n]){r.dataset.theme='dark';Object.entries(THEMES[n]).forEach(([k,v])=>r.style.setProperty(k,v))}
+  curTheme=n;store.set('preset',n);
+  document.getElementById('themeList').innerHTML=Object.entries(THEMES).map(([k,t])=>{const c=t||{'--bg':'#0E1A2B','--panel':'#15243A','--line':'#26395A','--brand':'#F5B33C'};
+    return `<button data-theme-n="${k}" aria-pressed="${k===n}"><span class="sw"><i style="background:${c['--bg']}"></i><i style="background:${c['--panel']}"></i><i style="background:${c['--brand']};flex:.3"></i></span><span>${k}</span></button>`}).join('');
+  if(typeof drawChart==='function')drawChart();}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-theme-n]');if(b)applyTheme(b.dataset.themeN)});
+applyTheme(curTheme);
+document.getElementById('dsInfo').innerHTML=kvT([['DATA_SOURCE',DATA_SOURCE],['API_URL',API_URL],['รอบอัปเดต','5 s'],['รูปแบบข้อมูล','{solar, bess, load, grid, soc, recloserOpen, racks[], ts}']]);
+function tickClock(){const n=new Date();set('time',n.toLocaleTimeString('th-TH',{hour12:false}));
+  set('date',n.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'}))}
+async function update(){
+  try{const d=await fetchLive();render(d);document.getElementById('liveDot').classList.remove('off');document.getElementById('plantStatus').textContent='● Online';set('tStatus','● Online')}
+  catch(e){document.getElementById('liveDot').classList.add('off');document.getElementById('plantStatus').textContent='● Offline: '+e.message;set('tStatus','● Offline')}
+}
+document.getElementById('refresh').onclick=()=>{buildHistory();update();drawChart()};
+
+buildHistory();go('overview');setView(view);update();tickClock();
+setInterval(tickClock,1000);setInterval(update,5000);setInterval(()=>{buildHistory();drawChart()},300000);
+</script>
+</body>
+</html>
